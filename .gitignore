@@ -1,4 +1,4 @@
-subject.md
 .vscode/
 __pycache__/
-img_cls.py
+.DS_Store
+subject.md
