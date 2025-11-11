@@ -1,0 +1,5 @@
+subject.md
+.vscode/
+__pycache__/
+main.py
+img_cls.py
