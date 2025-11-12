@@ -23,9 +23,65 @@ def get_users():
 user = User(name="Alice")  # 메모리에 User 객체 생성
 ```
 
+- **Business Logic 비즈니스 로직**: 실제 문제를 해결하는 핵심 규칙과 처리 (코드)
+    - 도메인 규칙 (게임 규칙, 은행 규칙 등)
+    - 핵심 계산 (추천 알고리즘, 요금 계산 등)
+    - 업무 흐름 (주문 → 결제 → 배송 등)
+
+    **≠ 기술 코드** (HTTP, 파싱, DB 연결 등)
+    - 비즈니스로직과 기술코드의 차이 : 이 코드가 없으면 다른 회사/서비스에서도 똑같이 쓸 수 있나?
+    ```
+    HTTP 통신 <- 기술 코드
+    JSON 파싱 <- 기술 코드
+    --- 비즈니스 로직 시작 ---
+    만약 A 이면 B를 반환한다.
+    만약 C 이면 C += D 한다.
+    핵심적인 계산 로직
+    --- 비즈니스 로직 끝 ---
+    JSON 반환 <- 기술 코드
+    HTTP 응답 <- 기술 코드
+    ```
+
+
+**Routes - Controller - Model 구조**: 3계층 분리 (한 파일에 다 쓰지 말고, 역할별로 분리하자)
+```
+[클라이언트]
+     ↓ HTTP 요청
+[Route] ← "GET /users로 요청이 왔네"
+     ↓ 함수 호출
+[Controller] ← "사용자 목록 가져오는 로직 실행"
+     ↓ 데이터 요청
+[Model] ← "데이터베이스에서 User 데이터 가져오기"
+     ↓ 데이터 반환
+[Database]
+```
+- **Route**: 
+    - URL 경로 정의
+    - HTTP 메서드 지정 (GET, POST 등)
+    - Controller 함수 호출
+    - 비즈니스 로직 없음! (단순 연결만)
+
+- **Controller**: 
+    - 비즈니스 로직 실행 (핵심!)
+    - 데이터 검증 (나이, 이름 등)
+    - Model 호출하여 데이터 가져오기
+    - 여러 Model 조합
+    - 예외 처리
+
+- **Model**:
+    - 데이터 구조 정의 (Pydantic 모델)
+    - 데이터베이스 CRUD (Create, Read, Update, Delete)
+    - 비즈니스 로직 없음! (단순 데이터 접근만)
 
 
 
+
+
+- ❓Domain-Driven Design (DDD)
+- ❓Clean Architecture
+- ❓계층화 아키텍처 (Layered Architecture)
+- ❓의존성 주입 (Dependency Injection)
+- ❓Service Layer Pattern
 
 
 
@@ -244,6 +300,17 @@ routing_table = {
 [데이터베이스]
 ```
 
+```
+uvicorn 파싱:
+원시 바이트 → 구조화된 딕셔너리
+(HTTP 프로토콜 해석)
+
+FastAPI 파싱:
+구조화된 딕셔너리 → Python 객체
+(애플리케이션 로직에 맞게 변환 및 검증)
+```
+
+
 1. 서버 시작<br>
    `$ uvicorn main:app --reload`
    
@@ -352,7 +419,7 @@ routing_table = {
 
 
 
-- **API  (Application Programming Interface)**: 클라이언트가 서버에게 "이런 데이터 주세요"라고 요청하는 약속된 방식. 서버의 기능을 외부에서 사용할 수 있게 해주는 창구.
+- **API  (Application Programming Interface)**: 클라이언트가 서버에게 "이런 데이터 주세요"라고 요청하는, 서버별로 다르게 약속된 방식. 해당 서버의 기능을 외부에서 사용할 수 있게 해주는 창구.
     - 손님은 주방이 어떻게 요리하는지 몰라도 됨. 메뉴판만 보고 주문하면 됨.
     - **API Spec**: 레고 박스에 있는 블록의 크기, 모양, 색상 등을 표시한 명세서
     - **API doc**: 레고의 기능, 사용 방법, 호환성을 기록한 명세서
@@ -367,6 +434,30 @@ routing_table = {
 - **Library 라이브러리**: 개발에 필요한 기능을 호출해 재사용할 수 있는 코드의 집합.
     - "무엇을" 할 수 있는지에 대한 수단 제공.
     - 개발자가 주도권을 가짐 (개발자가 필요할 때 호출함).
+
+- **Pydantic Model**: 데이터 계약서 + 자동 검증기 + 변환기
+    - 데이터 계약서: "이 데이터는 이런 형태여야 한다"는 계약서 / 템플릿.
+    - 자동 검증기 & 변환기:
+    1) 타입 검증 (Type Validation): 
+    2) 타입 변환 (Type Coercion): ✨일반 타입 검사기와 다른 점! 가능하면 자동 변환 - ex) 숫자 문자열을 정수로 변환
+    3) 데이터 검증 (Data Validation): 타입 외의 추가 검증 - 형식, 길이, 범위 등 체크
+        ```py
+        class User(BaseModel):
+            name: str = Field(min_length=2, max_length=50)
+            age: int = Field(ge=0, le=150)  # ge = greater or equal
+            email: str
+            
+            @validator('email')
+            def validate_email(cls, v):
+                if '@' not in v:
+                    raise ValueError('이메일 형식이 아닙니다')
+                return v
+        ```
+    4) 직렬화/역직렬화 (Serialization): Python 객체 ↔ JSON 변환
+    
+    - **C++ struct**: 정적 타입, 실행 전 컴파일러가 미리 검사 (컴파일 타임)
+    - **Python dict**: 동적 타입, 검증 없음.
+    - **Pydantic**: 동적 타입, 실행 중에 검사 + 변환 (런타임)
 
 
 
@@ -464,6 +555,9 @@ routing_table = {
     - URL의 마지막에 슬래시(/)를 포함하지 않는다.
     - 등등...
 
+   - **Idempotent (멱등성)**: GET, PUT, DELETE - 여러 번 호출해도 결과 동일
+   - **Non-idempotent**: POST, PATCH - 호출 시마다 결과 달라질 수 있음
+
 - **Design Pattern 디자인패턴**: 자주 사용하는 설계 형태를 템플릿으로 만들어둔 것. ❓어떤 종류가 있나? (그놈의 싱글톤)
 
 
@@ -511,7 +605,6 @@ routing_table = {
 
 
 
-- ❓비지니스 로직과 routes, controller, model
 
 - ❓미들웨어(Middleware)
     - ❓타임아웃 미들웨어
@@ -521,3 +614,17 @@ routing_table = {
 - ❓dot.env
 
 - ❓CORS
+
+
+- ❓Custom Validators
+- ❓Model Config
+- ❓Field Validators
+- ❓Root Validators
+- ❓Model Inheritance
+- ❓Nested Models
+- ❓Union Types
+- ❓Type Checking vs Runtime Validation
+- ❓Mypy (Python 정적 타입 체커)
+- ❓Type Annotations
+- ❓Gradual Typing
+- ❓Static Analysis Tools
