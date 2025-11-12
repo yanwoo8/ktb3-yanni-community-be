@@ -29,11 +29,11 @@ def root() -> Dict[str, str]:
     - 간단한 환영 메시지 반환하여 서비스 작동 확인 (Health Check)
 
     Returns:
-        Dict[str, str]: 환영 메시지 딕셔너리
+    - Dict[str, str]: 환영 메시지 딕셔너리
     
     Note:
-        FastAPI는 Python dict를 자동으로 JSON으로 직렬화 (Content-Type: application/json)
-        내부적으로 JSONResponse로 래핑됨
+    - FastAPI는 Python dict를 자동으로 JSON으로 직렬화 (Content-Type: application/json)
+    - 내부적으로 JSONResponse로 래핑됨
     """
     return {"message": "KTB AI 커뮤니티에 오신 것을 환영합니다!"}
 
@@ -48,17 +48,17 @@ def custom_response() -> JSONResponse:
     - Body: JSON 데이터 포함
     
     HTTP Response 구조:
-        1. Status Line: HTTP/1.1 200 OK
-        2. Headers: 메타데이터 (Content-Type, Custom Headers 등)
-        3. Body: 실제 전송 데이터 (JSON, HTML 등)
+    1. Status Line: HTTP/1.1 200 OK
+    2. Headers: 메타데이터 (Content-Type, Custom Headers 등)
+    3. Body: 실제 전송 데이터 (JSON, HTML 등)
     
     Returns:
-        JSONResponse: 커스텀 헤더와 쿠키가 포함된 JSON 응답
+    - JSONResponse: 커스텀 헤더와 쿠키가 포함된 JSON 응답
     
     Note:
-        - JSONResponse: FastAPI의 응답 클래스, Starlette의 Response를 상속
-        - Cookie: HTTP의 Stateless 특성을 보완하는 클라이언트 측 저장소
-        - session_id: 서버가 클라이언트를 식별하기 위한 고유 식별자
+    - JSONResponse: FastAPI의 응답 클래스, Starlette의 Response를 상속
+    - Cookie: HTTP의 Stateless 특성을 보완하는 클라이언트 측 저장소
+    - session_id: 서버가 클라이언트를 식별하기 위한 고유 식별자
     """
 
     # Define Response Body (Content)
@@ -82,11 +82,16 @@ def custom_response() -> JSONResponse:
     session_id: str = "abc123"
     response.set_cookie(key="session_id",
                         value=session_id,
-                        samesite="lax")
+                        samesite="lax") # CSRF 방어
     
     return response
 
 
+"""
+* uvicorn main:app --reload
+* curl -v http://localhost:8000/custom
 
-# uvicorn main:app --reload
-# curl -v http://localhost:8000/custom
+- API 문서: http://localhost:8000/docs
+- Health Check: http://localhost:8000/
+- 커스텀 응답: http://localhost:8000/custom
+"""

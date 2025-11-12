@@ -4,13 +4,23 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.2-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+[![Postman](https://img.shields.io/badge/Testing-Postman-orange.svg?style=flat&logo=postman&logoColor=white)]()
+[![CURL](https://img.shields.io/badge/Testing-CURL-green.svg?style=flat&logo=curl&logoColor=white)]()
+
+추가 예정:
+- **Database** | PostgreSQL, SQLAlchemy
+- **Authentication** | JWT (JSON Web Token)
+- **Security** | bcrypt, CORS, Rate Limiting
+- **Validation** | Pydantic v2
+
 
 [![KakaoTech](https://img.shields.io/badge/kakaotech_bootcamp-ffcd00.svg?logo=kakaotalk&logoColor=000000)](https://kakaotechbootcamp.com/)
 [![StartupCode](https://img.shields.io/badge/StartupCode-blue.svg)](https://www.startupcode.kr/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
----
+
 
 ## Table of Contents
 
@@ -32,15 +42,27 @@
 
 **branch name:** `feature/init-setup`  
 **구현 내용:**
-1. `pyproject.toml` 작성 - 의존성, 프로젝트 메타데이터 정리 및 이해
-2. FastAPI의 기본 구조 작성 - `app = FastAPI()`, `@app.get()` 데코레이터
-3. HTTP Response의 3요소 구현 - Status Code, Headers, Body
-4. JSON 직렬화 - Python dict → JSON string, `JSONResponse`
+1. `pyproject.toml`: 의존성, 프로젝트 메타데이터 정리 및 이해
+2. `main.py`: FastAPI의 기본 구조 작성 - 엔드포인트 이해 및 데코레이터 활용법 학습
+3. `main.py`: HTTP Response의 3요소 구현 - Status Code, Headers, Body
+4. `main.py`: JSON 직렬화 - Python dict → JSON string, `JSONResponse`
+5. `main.py`: Cookie를 통한 상태 관리 - HTTP의 Stateless 문제 및 쿠키 활용 이해
 
 **검증:** Postman으로 `GET` 요청 후  Status Code, Headers, Cookie 확인
 
 
 ### 1-2. 결과
+<details>
+<summary>직접 테스트해보기</summary>
+
+```
+uvicorn main:app --reload
+```
+> - API 문서: http://localhost:8000/docs
+> - Health Check: http://localhost:8000/
+> - 커스텀 응답: http://localhost:8000/custom
+</details>
+<br>
 
 1. `GET /`
     <details>
