@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+
+[project]
+name = "community-backend"
+version = "0.1.0"
+description = "A simple Community backend project using FastAPI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    { name = "yanni", email = "kkyanwoo@gmail.com" }
+]
+keywords = ["fastapi", "backend", "community"]
+
+
+
+dependencies = [
+    # Web Framework
+    "fastapi==0.115.2",          # ASGI based async web framework
+    "uvicorn[standard]==0.32.0", # ASGI server
+
+    # Database: SQLAlchemy, asyncpg
+    # Validation: Pydantic (FastAPI에 포함)
+    # Security: python-jose[cryptography], passlib[bcrypt]
+]
+
+
+
+[project.urls]
+Homepage = "https://github.com/yanwoo8/ktb3-yanni-community-be"
+Repository = "https://github.com/yanwoo8/ktb3-yanni-community-be"
+Documentation = "https://github.com/yanwoo8/ktb3-yanni-community-be/blob/main/README.md"
+Issues = "https://github.com/yanwoo8/ktb3-yanni-community-be/issues"
+
+
+
+
+[tool.black] # Black: 코드 포매팅 자동화
+line-length = 100
+target-version = ['py310']
