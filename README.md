@@ -164,7 +164,6 @@ browser ➡️ Developer Tools ➡️ Network
 7. read all
 8. read one
 
----
 
 ### 2-2. 결과
 
