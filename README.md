@@ -176,10 +176,10 @@ curl -X POST http://localhost:8000/posts \
 -d '{"title":"Test","content":"Hello"}'
 
 # GET: Read all
-curl -X PUT http://localhost:8000/posts
+curl -X GET http://localhost:8000/posts
 
 # GET: Read one
-curl -X PUT http://localhost:8000/posts/1
+curl -X GET http://localhost:8000/posts/1
 curl -X GET http://localhost:8000/posts/999
 
 # PUT
@@ -437,11 +437,150 @@ return None
 </details>
 
 
+
+---
+
+## 3. 아키텍처 리팩토링 (Route-Controller 분리)
+
+### 3-1. 설명
+
+**branch name:** `feature/architecture-refactor`  
+**구현 내용:**  
+Route - Controller 분리 & SOC, SRP, DIP 보장
+- **관심사의 분리(SoC/Separation of Concerns)**: Route(HTTP), Controller(비즈니스 로직), Schema(검증) 분리
+- **단일 책임 원칙(SRP/Single Responsibility Principle)**: 각 계층이 하나의 책임만 담당
+- **의존성 역전 원칙(DIP/Dependency Inversion Principle)**: Route → Controller 의존, 역방향 의존 없음
+```
+app/
+├── main.py              # 앱 진입점, Router 등록
+├── routes/              # HTTP 계층
+│   └── post_routes.py   # 엔드포인트 정의
+├── controllers/         # 비즈니스 로직 계층
+│   └── post_controller.py  # CRUD 로직
+└── schemas/             # 데이터 검증 계층
+    └── post_schema.py   # Pydantic 모델
+```
+
+|      -     |        관심사/Concerns         |   의존성 방향   | 책임/Responsibility |
+|------------|------------------------------|--------------|--------------------|
+| Route      | HTTP 요청/응답 처리, 상태 코드 매핑 | → Controller | HTTP 스펙 변경 시 수정 |
+| Controller | 비즈니스 로직, 데이터 검증         | → None       | 비즈니스 규칙 변경 시 수정 |
+| Schema     | Pydantic 모델을 통한 타입 검증    |      -       | 데이터 구조 변경 시 수정 |
+
+
+**검증:** 기존 CRUD 기능이 동일하게 동작하는지 확인
+
+
+### 3-2. 결과
+curl로 확인한 결과, 모두 정상적으로 작동하였다.
+<details>
+<summary>직접 테스트해보기</summary>
+
+```sh
+uvicorn main:app #--reload
+```
+- API 문서: http://localhost:8000/docs
+- Health Check: http://localhost:8000/
+- 커스텀 응답: http://localhost:8000/custom
+- 게시글 목록: http://localhost:8000/posts
+```sh
+# POST: Create
+curl -X POST http://localhost:8000/posts \
+-H "Content-Type: application/json" \
+-d '{"title":"Test","content":"Hello"}'
+
+# GET: Read all
+curl -X GET http://localhost:8000/posts
+
+# GET: Read one
+curl -X GET http://localhost:8000/posts/1
+curl -X GET http://localhost:8000/posts/999
+
+# PUT
+curl -X PUT http://localhost:8000/posts/1 \
+-H "Content-Type: application/json" \
+-d '{"title":"Updated","content":"World"}'
+
+# PATCH
+curl -X PATCH http://localhost:8000/posts/1 \
+-H "Content-Type: application/json" \
+-d '{"title":"Patched"}'
+
+# DELETE
+curl -X DELETE http://localhost:8000/posts/1
+curl -i -X DELETE http://localhost:8000/posts/999
+
+# GET: Read all
+curl -X GET http://localhost:8000/posts
+
+# GET: Read one
+curl -X GET http://localhost:8000/posts/1
+```
+</details>
+
+
+
+### 3-3. 문제와 해결
+
+<details>
+<summary><code>post.model_dump()</code> 사용 고려</summary>
+
+**고려 사항:** Route에서 데이터 파싱 - Controller 전달 시 다음 두 방법을 고려할 수 있다.
+1. 입력 필드 명시적 호출
+    ```py
+    result = controller.create(post.title, post.content)
+    ```
+    - **장점**: 어떤 필드를 쓰는지 명확함, 타입 추적 용이, 의도치 않은 필드 전달 방지.
+    - **적합한 경우**: 입력 필드가 적고 고정적일 때, 또는 타입 안전성이 중요할 때
+
+2. `.model_dump()`로 언패킹
+    ```py
+    result = controller.create(**post.model_dump())
+    ```
+    - **장점**: 필드가 많거나 모델 구조가 자주 변경될 때 코드가 간결해짐 (중복 제거).
+    - **주의할 점**:
+        1. Controller가 Pydantic 모델의 모든 필드를 그대로 받을 수 있도록 설계되어야 함.
+        2. 불필요하거나 민감한 필드가 전달되지 않도록 주의해야 함.
+        3. 필요 시 `exclude_unset=True` 또는 `exclude_none=True` 옵션 활용
+
+**결론:**
+- 명시적 호출 방식: `post /`, `put /{post_id}`  
+    필드가 2개로 적고, 전체 필드가 필수이므로 명시적으로 전달한다.
+- `.model_dump()` 언패킹 방식: `patch /{post_id}`  
+    선택적으로 입력받은 필드만 사용해야 하므로, `exclude_unset=True`를 활용하여 전송받은 필드만 추출한다.
+
+</details>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## 다음 단계
 
-- [ ] 데이터베이스 연동 (SQLAlchemy + PostgreSQL)
+- [ ] 모델 구조 추가 (데이터베이스 연동)
+- [ ] 미들웨어 적용
 - [ ] 인증/인가 (JWT Token)
 - [ ] 페이지네이션 구현
-- [ ] 에러 핸들링 미들웨어
-- [ ] 유닛 테스트 작성 (pytest)
-- [ ] Docker 컨테이너화
