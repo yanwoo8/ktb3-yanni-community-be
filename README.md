@@ -155,14 +155,6 @@ browser ➡️ Developer Tools ➡️ Network
 7. `main.py`: HTTP Status Code 활용 - 200/201/204/404 응답 처리
 
 **검증:** Postman 또는 curl로 5개 HTTP 메서드 테스트
-1. create
-2. read all
-3. read one
-4. put
-5. patch
-6. delete
-7. read all
-8. read one
 
 
 ### 2-2. 결과
