@@ -1,5 +1,7 @@
 #!/bin/bash
 
+uvicorn app.main:app
+
 # 한글 깨짐 방지를 위한 함수 정의
 pretty_json() {
   local input=$(cat)

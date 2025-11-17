@@ -27,8 +27,10 @@ Endpoints:
 """
 
 from typing import Dict
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from app.routes import post_routes, auth_routes, comment_routes, dev_routes
 
 
@@ -41,6 +43,87 @@ app = FastAPI(
     description="A simple Community backend project using FastAPI with Router-Controller Architecture",
     version="0.2.0"  # version update after refactoring
 )
+
+
+# ==================== Exception Handlers ====================
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Pydantic ValidationError를 한국어 경고 메시지로 변환하는 전역 예외 핸들러
+
+    Args:
+    - request (Request): FastAPI 요청 객체
+    - exc (RequestValidationError): 요청 검증 오류
+
+    Returns:
+    - JSONResponse: 사용자 친화적인 한국어 오류 메시지
+    """
+    # 필드별 기본 오류 메시지 매핑
+    field_messages = {
+        'email': '*이메일을 입력해주세요.',
+        'password': '*비밀번호를 입력해주세요',
+        'password_confirm': '*비밀번호 확인을 입력해주세요',
+        'nickname': '*닉네임을 입력해주세요',
+        'profile_image': '*프로필 이미지를 입력해주세요'
+    }
+
+    errors = exc.errors()
+
+    if not errors:
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "입력값을 확인해주세요."}
+        )
+
+    # 첫 번째 에러만 처리 (보통 하나씩 처리하는 것이 UX에 좋음)
+    first_error = errors[0]
+    field = first_error['loc'][-1] if first_error['loc'] else 'unknown'
+    error_type = first_error['type']
+
+    # ValueError가 있으면 커스텀 메시지 우선 사용
+    if error_type == 'value_error':
+        msg = first_error.get('msg', '')
+        # 이메일 형식 오류 체크
+        if 'email' in msg.lower():
+            message = "*올바른 이메일 주소 형식을 입력해주세요. (예: example@example.com)"
+        else:
+            ctx = first_error.get('ctx', {})
+            if 'error' in ctx:
+                message = str(ctx['error'])
+            else:
+                # msg에서 ValueError 메시지 추출
+                if 'Value error,' in msg:
+                    message = msg.split('Value error,')[-1].strip()
+                else:
+                    message = msg
+    # missing 필드인 경우
+    elif error_type == 'missing':
+        message = field_messages.get(field, f'*{field}을(를) 입력해주세요.')
+    # 이메일 형식 오류
+    elif error_type in ['value_error.email', 'email']:
+        message = "*올바른 이메일 주소 형식을 입력해주세요. (예: example@example.com)"
+    # 문자열 길이 제약 위반
+    elif error_type in ['string_too_short', 'string_too_long']:
+        if field == 'email':
+            message = "*올바른 이메일 주소 형식을 입력해주세요. (예: example@example.com)"
+        elif field == 'password':
+            message = "*비밀번호는 8자 이상, 20자 이하이며, 대문자, 소문자, 숫자, 특수문자를 각각 최소 1개 포함해야 합니다."
+        elif field == 'nickname':
+            message = "*닉네임은 최대 10자 까지 작성 가능합니다."
+        else:
+            message = field_messages.get(field, "입력값을 확인해주세요.")
+    # JSON 파싱 에러
+    elif error_type == 'json_invalid':
+        message = "입력값을 확인해주세요."
+    # 기타 에러
+    else:
+        message = field_messages.get(field, "입력값을 확인해주세요.")
+
+    return JSONResponse(
+        status_code=400,
+        content={"detail": message}
+    )
 
 
 # ==================== Router Registration ====================
