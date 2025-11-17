@@ -14,7 +14,7 @@ Pydantic BaseModel의 역할:
 
 
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 
@@ -23,18 +23,39 @@ class PostCreate(BaseModel):
     """
     @ Pydantic Model
     [POST/PUT] 게시글 생성/전체수정 요청 바디 스키마
-    [POST/PUT] Post Create/Update(full) Request Body Schema
-    
+
     Fields:
-    - title (str): 게시글 제목 (필수)
+    - title (str): 게시글 제목 (필수, 최대 26자)
     - content (str): 게시글 내용 (필수)
-    
+    - image_url (Optional[str]): 이미지 URL (선택)
+    - author_id (int): 작성자 ID (필수)
+
     Note:
     - FastAPI는 이 모델을 보고 자동으로 request body 파싱
     - 타입 불일치 시 422 Unprocessable Entity 반환
     """
-    title: str
+    title: str = Field(..., max_length=26)
     content: str
+    image_url: Optional[str] = None
+    author_id: int
+
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, v):
+        """제목 검증"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError("*제목을 입력해주세요")
+        if len(v) > 26:
+            raise ValueError("*제목은 최대 26자까지 작성 가능합니다.")
+        return v
+
+    @field_validator('content')
+    @classmethod
+    def validate_content(cls, v):
+        """내용 검증"""
+        if not v or len(v.strip()) == 0:
+            raise ValueError("*내용을 입력해주세요")
+        return v
 
 
 class PostPartialUpdate(BaseModel):

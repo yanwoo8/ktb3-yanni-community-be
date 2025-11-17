@@ -29,7 +29,7 @@ Endpoints:
 from typing import Dict
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
-from app.routes import post_routes
+from app.routes import post_routes, auth_routes, comment_routes, dev_routes
 
 
 
@@ -57,6 +57,9 @@ Router 등록:
 3. 유지보수성: 각 모듈의 책임이 명확하여 수정이 용이
 """
 app.include_router(post_routes.router)
+app.include_router(auth_routes.router)
+app.include_router(comment_routes.router)
+app.include_router(dev_routes.router)  # 개발/테스트용 라우터
 
 
 # In-Memory Storage 삭제 - 이제 Controller에서 관리
@@ -76,7 +79,7 @@ def root() -> Dict[str, str]:
     Returns:
     - Dict[str, str]: 환영 메시지
     """
-    return {"message": "KTB AI 커뮤니티에 오신 것을 환영합니다!"}
+    return {"message": "KTB AI Community"}
 
 
 

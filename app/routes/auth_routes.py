@@ -33,7 +33,7 @@ Endpoints:
 from typing import Dict
 from fastapi import APIRouter, HTTPException
 from app.schemas.auth_schema import UserRegister, UserLogin, NicknameUpdate
-from app.controllers.controller_instances import user_controller, post_controller, comment_controller
+from app.controllers.controller_instances import user_controller, post_model, comment_model
 import logging
 
 
@@ -138,11 +138,16 @@ def update_user_nickname(user_id: int, update_data: NicknameUpdate) -> Dict:
     - 200 OK: 수정 성공
     - 400 Bad Request: 유효성 검증 실패 또는 닉네임 중복
     - 500 Internal Server Error: 서버 오류
+
+    Note:
+    - CASCADE UPDATE: 작성한 게시글/댓글의 닉네임도 함께 업데이트됨
     """
     try:
         result = controller.update_nickname(
             user_id=user_id,
-            new_nickname=update_data.nickname
+            new_nickname=update_data.nickname,
+            post_model=post_model,
+            comment_model=comment_model
         )
         return {"message": "수정완료", "data": result}
 
@@ -178,8 +183,8 @@ def delete_user(user_id: int):
     try:
         controller.delete_user(
             user_id=user_id,
-            post_controller=post_controller,
-            comment_controller=comment_controller
+            post_model=post_model,
+            comment_model=comment_model
         )
         return None
 
