@@ -3,22 +3,21 @@ User Controller
 
 역할:
 1. 비즈니스 로직 처리: 회원가입, 로그인 등 사용자 인증 로직
-2. 데이터 관리: In-memory 사용자 저장소 관리
+2. Model 계층 호출: 데이터 접근은 UserModel에 위임
 3. 예외 처리: 비즈니스 규칙 위반 시 예외 발생
 
 설계 원칙:
-- 단일 책임 원칙(SRP): 사용자 인증 관련 로직만 담당
-- 의존성 역전 원칙(DIP): HTTP 계층과 독립적으로 동작
-- 인터페이스 분리: Route는 Controller의 public 메서드만 호출
+- 단일 책임 원칙(SRP): 사용자 인증 관련 비즈니스 로직만 담당
+- 의존성 역전 원칙(DIP): HTTP 계층 및 데이터 계층과 독립적
+- Repository 패턴: Model을 통한 데이터 접근
 
 Note:
-- 실제 프로덕션에서는 Repository 패턴으로 DB 접근 계층 분리
-- 현재는 In-memory 저장소로 구현 (서버 재시작 시 데이터 소실)
+- Controller → Model → Data 계층 분리
 - 비밀번호는 실제로는 해싱하여 저장해야 함 (bcrypt, argon2 등)
 """
 
-import re
-from typing import List, Dict, Optional
+from typing import Dict, Optional
+from app.models.user_model import UserModel
 
 
 class UserController:
@@ -26,26 +25,25 @@ class UserController:
     사용자 인증 비즈니스 로직을 담당하는 Controller
 
     Attributes:
-    - users (List[Dict]): In-memory 사용자 저장소
+    - user_model (UserModel): 사용자 데이터 접근 계층
 
     Methods:
     - register: 회원가입
     - login: 로그인
-    - check_email_duplicate: 이메일 중복 확인
-    - check_nickname_duplicate: 닉네임 중복 확인
+    - get_user_info: 사용자 정보 조회 (내부용)
     - update_nickname: 닉네임 수정
     - delete_user: 회원 탈퇴
     """
 
-    def __init__(self):
+    def __init__(self, user_model: UserModel):
         """
         Controller 초기화
 
-        Note:
-        - Singleton 패턴으로 구현 시 앱 전역에서 하나의 인스턴스만 사용
-        - 현재는 FastAPI의 Dependency Injection으로 관리
+        Args:
+        - user_model (UserModel): 의존성 주입된 UserModel 인스턴스
         """
-        self.users: List[Dict] = []  # In-memory 저장소
+        self.user_model = user_model
+
 
     # ==================== REGISTER ====================
 
@@ -80,7 +78,7 @@ class UserController:
             raise ValueError("*프로필 사진을 추가해주세요")
 
         # 2. 이메일 중복 확인
-        if self.check_email_duplicate(email):
+        if self.user_model.find_by_email(email):
             raise ValueError("*중복된 이메일입니다")
 
         # 3. 비밀번호 확인 일치 여부
@@ -88,26 +86,17 @@ class UserController:
             raise ValueError("*비밀번호가 다릅니다")
 
         # 4. 닉네임 중복 확인
-        if self.check_nickname_duplicate(nickname):
+        if self.user_model.find_by_nickname(nickname):
             raise ValueError("*중복된 닉네임 입니다.")
 
-        # 5. 사용자 생성
-        new_user = {
-            "id": len(self.users) + 1,
-            "email": email,
-            "password": password,  # 실제로는 해싱하여 저장해야 함
-            "nickname": nickname,
-            "profile_image": profile_image
-        }
-        self.users.append(new_user)
+        # 5. 사용자 생성 (Model에 위임)
+        return self.user_model.create(
+            email=email,
+            password=password,  # 실제로는 해싱하여 저장해야 함
+            nickname=nickname,
+            profile_image=profile_image
+        )
 
-        # 비밀번호를 제외한 사용자 정보 반환
-        return {
-            "id": new_user["id"],
-            "email": new_user["email"],
-            "nickname": new_user["nickname"],
-            "profile_image": new_user["profile_image"]
-        }
 
     # ==================== LOGIN ====================
 
@@ -131,8 +120,8 @@ class UserController:
         3. 로그인 성공 시 사용자 정보 반환
         """
 
-        # 이메일로 사용자 찾기
-        user = next((u for u in self.users if u["email"] == email), None)
+        # 이메일로 사용자 찾기 (Model에 위임)
+        user = self.user_model.find_by_email(email)
 
         # 사용자가 없거나 비밀번호가 틀린 경우
         if not user or user["password"] != password:
@@ -146,42 +135,43 @@ class UserController:
             "profile_image": user["profile_image"]
         }
 
-    # ==================== VALIDATION ====================
 
-    def check_email_duplicate(self, email: str) -> bool:
+    # ==================== READ ====================
+
+    def get_user_info(self, user_id: int) -> Optional[Dict]:
         """
-        이메일 중복 확인
+        사용자 정보 조회 (내부용 - 다른 Controller에서 사용)
 
         Args:
-        - email (str): 확인할 이메일
+        - user_id (int): 사용자 ID
 
         Returns:
-        - bool: 중복이면 True, 아니면 False
+        - Optional[Dict]: 사용자 정보 (비밀번호 제외)
         """
-        return any(u["email"] == email for u in self.users)
+        user = self.user_model.find_by_id(user_id)
+        if not user:
+            return None
 
-    def check_nickname_duplicate(self, nickname: str) -> bool:
-        """
-        닉네임 중복 확인
-
-        Args:
-        - nickname (str): 확인할 닉네임
-
-        Returns:
-        - bool: 중복이면 True, 아니면 False
-        """
-        return any(u["nickname"] == nickname for u in self.users)
+        return {
+            "id": user["id"],
+            "email": user["email"],
+            "nickname": user["nickname"],
+            "profile_image": user["profile_image"]
+        }
 
 
     # ==================== UPDATE ====================
 
-    def update_nickname(self, user_id: int, new_nickname: str) -> Dict:
+    def update_nickname(self, user_id: int, new_nickname: str,
+                       post_model=None, comment_model=None) -> Dict:
         """
-        닉네임 수정
+        닉네임 수정 (CASCADE UPDATE: 게시글/댓글의 작성자 닉네임도 함께 업데이트)
 
         Args:
         - user_id (int): 사용자 ID
         - new_nickname (str): 새 닉네임
+        - post_model: PostModel 인스턴스 (CASCADE UPDATE용)
+        - comment_model: CommentModel 인스턴스 (CASCADE UPDATE용)
 
         Returns:
         - Dict: 수정된 사용자 정보
@@ -190,7 +180,7 @@ class UserController:
         - ValueError: 사용자가 존재하지 않거나 닉네임 중복 시
         """
         # 사용자 찾기
-        user = next((u for u in self.users if u["id"] == user_id), None)
+        user = self.user_model.find_by_id(user_id)
         if not user:
             raise ValueError("사용자를 찾을 수 없습니다")
 
@@ -204,64 +194,65 @@ class UserController:
             }
 
         # 닉네임 중복 확인 (다른 사용자와 중복)
-        if any(u["nickname"] == new_nickname and u["id"] != user_id for u in self.users):
+        existing_user = self.user_model.find_by_nickname(new_nickname)
+        if existing_user and existing_user["id"] != user_id:
             raise ValueError("*중복된 닉네임 입니다.")
 
-        # 닉네임 업데이트
-        user["nickname"] = new_nickname
+        # 닉네임 업데이트 (Model에 위임)
+        updated_user = self.user_model.update(user_id, nickname=new_nickname)
 
-        return {
-            "id": user["id"],
-            "email": user["email"],
-            "nickname": user["nickname"],
-            "profile_image": user["profile_image"]
-        }
+        # CASCADE UPDATE: 작성한 게시글의 author_nickname 업데이트
+        if post_model:
+            for post in post_model.posts:
+                if post["author_id"] == user_id:
+                    post["author_nickname"] = new_nickname
+
+        # CASCADE UPDATE: 작성한 댓글의 author_nickname 업데이트
+        if comment_model:
+            for comment in comment_model.comments:
+                if comment["author_id"] == user_id:
+                    comment["author_nickname"] = new_nickname
+
+        return updated_user
 
 
     # ==================== DELETE ====================
 
-    def delete_user(self, user_id: int, post_controller=None, comment_controller=None) -> None:
+    def delete_user(self, user_id: int, post_model=None, comment_model=None) -> None:
         """
         회원 탈퇴
 
         Args:
         - user_id (int): 사용자 ID
-        - post_controller: 게시글 컨트롤러 (사용자의 게시글 삭제용)
-        - comment_controller: 댓글 컨트롤러 (사용자의 댓글 삭제용)
+        - post_model: 게시글 Model (CASCADE 삭제용)
+        - comment_model: 댓글 Model (CASCADE 삭제용)
 
         Raises:
         - ValueError: 사용자가 존재하지 않을 때
 
         Business Logic:
-        - 사용자가 작성한 게시글 모두 삭제
-        - 사용자가 작성한 댓글 모두 삭제
+        - 사용자가 작성한 게시글 모두 삭제 (CASCADE)
+        - 사용자가 작성한 댓글 모두 삭제 (CASCADE)
         - 사용자 정보 삭제
         """
-        # 사용자 찾기
-        user = next((u for u in self.users if u["id"] == user_id), None)
+        # 사용자 존재 확인
+        user = self.user_model.find_by_id(user_id)
         if not user:
             raise ValueError("사용자를 찾을 수 없습니다")
 
-        # 사용자의 게시글 모두 삭제
-        if post_controller:
-            user_posts = [p for p in post_controller.posts if p["author_id"] == user_id]
-            for post in user_posts:
-                post_controller.delete(post["id"])
+        # 사용자의 게시글 모두 삭제 (CASCADE)
+        if post_model:
+            deleted_post_ids = post_model.delete_by_author(user_id)
+
+            # 삭제된 게시글의 댓글도 삭제
+            if comment_model:
+                for post_id in deleted_post_ids:
+                    comment_model.delete_by_post(post_id)
 
         # 사용자의 댓글 모두 삭제
-        if comment_controller:
-            user_comments = [c for c in comment_controller.comments if c["author_id"] == user_id]
-            for comment in user_comments[:]:  # 복사본으로 반복
-                comment_controller.comments.remove(comment)
-                # 댓글수 감소
-                if post_controller:
-                    try:
-                        post_controller.decrement_comment_count(comment["post_id"])
-                    except:
-                        pass
+        if comment_model:
+            comment_model.delete_by_author(user_id)
 
-        # 사용자 삭제
-        for i, u in enumerate(self.users):
-            if u["id"] == user_id:
-                self.users.pop(i)
-                return
+        # 사용자 삭제 (Model에 위임)
+        if not self.user_model.delete(user_id):
+            raise ValueError("사용자 삭제에 실패했습니다")

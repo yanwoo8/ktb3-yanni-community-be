@@ -20,7 +20,7 @@ Note:
 from typing import Dict
 from fastapi import APIRouter, HTTPException
 from app.schemas.post_schema import PostCreate, PostPartialUpdate
-from app.controllers.post_controller import PostController
+from app.controllers.controller_instances import post_controller
 import logging
 
 
@@ -35,8 +35,8 @@ router = APIRouter(
 )
 
 
-# Controller 인스턴스 생성 (Singleton 패턴)
-controller = PostController()
+# Controller 인스턴스 (공유 Singleton)
+controller = post_controller
 
 
 # Logger 인스턴스 생성
@@ -76,30 +76,20 @@ def create_post(post: PostCreate) -> Dict:
     - 예외 발생 시 FastAPI가 자동으로 500 Internal Server Error 반환
     """
     try:
-        """
-        payload = post.model_dump()  # Pydantic v2
-        allowed = {k: payload[k] for k in ("title", "content") if k in payload}
-        result = controller.create(**allowed)
-        """
-        result = controller.create(post.title, post.content) # Dict
+        result = controller.create(
+            title=post.title,
+            content=post.content,
+            author_id=post.author_id,
+            image_url=post.image_url
+        )
         return {"message": "Created", "data": result}
-    # 201 Created
-    
+
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"잘못된 입력: {str(e)}")
-    # 400 Bad Request
+        raise HTTPException(status_code=400, detail=str(e))
 
     except Exception as e:
-        # ✅ Log: detailed error for debugging
-        logger.error(f"게시글 생성 실패 - title: {post.title}, error: {str(e)}",
-                     exc_info=True  # 스택 트레이스 포함
-        )
-        # 🔒 Client: simple error message for security
-        raise HTTPException(
-            status_code=500,
-            detail="게시글 생성 중 오류가 발생했습니다"
-        )
-    # 500 Internal Server Error
+        logger.error(f"게시글 생성 실패 - title: {post.title}, error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="게시글 생성 중 오류가 발생했습니다")
 
 
 
@@ -141,22 +131,23 @@ def get_all_posts() -> Dict:
 def get_post(post_id: int) -> Dict:
     """
     특정 게시글 조회 엔드포인트 (GET /posts/{post_id})
-    
+
     Args:
     - post_id (int): Path Parameter로 전달된 게시글 ID
-    
+
     Returns:
     - Dict: 성공 메시지 + 조회된 게시글 데이터
-    
+
     Status Code:
     - 200 OK: 조회 성공
     - 404 Not Found: 게시글이 존재하지 않음
-    
+
     Note:
     - Controller에서 ValueError 발생 → HTTPException(404) 변환
+    - increment_view=True로 조회수 자동 증가
     """
     try:
-        post = controller.get_by_id(post_id)
+        post = controller.get_by_id(post_id, increment_view=True)
         return {"message": "Success", "data": post}
     # 200 OK
 
@@ -235,28 +226,141 @@ def partial_update_post(post_id: int, update_data: PostPartialUpdate) -> Dict:
 
 
 @router.delete("/{post_id}", status_code=204)
-def delete_post(post_id: int):
+def delete_post(post_id: int, user_id: int):
     """
     게시글 삭제 엔드포인트 (DELETE /posts/{post_id})
-    
+
     Args:
     - post_id (int): 삭제할 게시글 ID
-    
+    - user_id (int): 사용자 ID (Query Parameter, 권한 확인용)
+
     Returns:
     - None (204 No Content)
-    
+
     Status Code:
     - 204 No Content: 삭제 성공, 응답 본문 없음
+    - 400 Bad Request: 권한 없음 (본인 게시글 아님)
     - 404 Not Found: 게시글이 존재하지 않음
-    
+
     Note:
+    - 본인이 작성한 게시글만 삭제 가능
     - 204는 본문이 없으므로 return 값 무시
     """
     try:
+        # 게시글 존재 및 권한 확인
+        post = controller.get_by_id(post_id, increment_view=False)
+        if post["author_id"] != user_id:
+            raise HTTPException(status_code=400, detail="본인이 작성한 게시글만 삭제할 수 있습니다")
+
         controller.delete(post_id)
         return None
     # 204 No Content
-    
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    # 404 Not Found
+
+
+# ==================== LIKE ====================
+
+
+@router.post("/{post_id}/like")
+def toggle_like(post_id: int, user_id: int) -> Dict:
+    """
+    좋아요 토글 엔드포인트 (POST /posts/{post_id}/like)
+
+    Args:
+    - post_id (int): 게시글 ID
+    - user_id (int): 사용자 ID (Query Parameter)
+
+    Returns:
+    - Dict: 좋아요 토글 결과 + 업데이트된 게시글 데이터
+
+    Status Code:
+    - 200 OK: 좋아요 토글 성공
+    - 404 Not Found: 게시글이 존재하지 않음
+
+    Note:
+    - 좋아요가 이미 있으면 취소, 없으면 추가
+    """
+    try:
+        result = controller.toggle_like(post_id, user_id)
+        action = "좋아요 추가" if result["liked"] else "좋아요 취소"
+        return {
+            "message": action,
+            "data": result["post"],
+            "liked": result["liked"]
+        }
+    # 200 OK
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    # 404 Not Found
+
+
+@router.get("/{post_id}/is-liked")
+def check_like_status(post_id: int, user_id: int) -> Dict:
+    """
+    좋아요 상태 확인 엔드포인트 (GET /posts/{post_id}/is-liked)
+
+    Args:
+    - post_id (int): 게시글 ID
+    - user_id (int): 사용자 ID (Query Parameter)
+
+    Returns:
+    - Dict: 좋아요 상태
+
+    Status Code:
+    - 200 OK: 조회 성공
+
+    Note:
+    - 게시글이 존재하지 않아도 false 반환 (404 발생 안함)
+    """
+    try:
+        # 게시글 존재 여부 확인
+        controller.get_by_id(post_id, increment_view=False)
+        is_liked = controller.is_liked_by_user(post_id, user_id)
+        return {
+            "message": "Success",
+            "liked": is_liked
+        }
+    # 200 OK
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    # 404 Not Found
+
+
+@router.delete("/{post_id}/like")
+def cancel_like(post_id: int, user_id: int) -> Dict:
+    """
+    좋아요 취소 엔드포인트 (DELETE /posts/{post_id}/like)
+
+    Args:
+    - post_id (int): 게시글 ID
+    - user_id (int): 사용자 ID (Query Parameter)
+
+    Returns:
+    - Dict: 좋아요 취소 결과 + 업데이트된 게시글 데이터
+
+    Status Code:
+    - 200 OK: 좋아요 취소 성공
+    - 404 Not Found: 게시글이 존재하지 않음
+
+    Note:
+    - POST와 동일하게 토글 방식으로 동작
+    - 좋아요가 있으면 취소, 없으면 추가
+    """
+    try:
+        result = controller.toggle_like(post_id, user_id)
+        action = "좋아요 추가" if result["liked"] else "좋아요 취소"
+        return {
+            "message": action,
+            "data": result["post"],
+            "liked": result["liked"]
+        }
+    # 200 OK
+
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     # 404 Not Found
