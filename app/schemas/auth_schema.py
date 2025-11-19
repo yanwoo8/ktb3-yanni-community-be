@@ -31,7 +31,8 @@ Pydantic BaseModel의 역할:
 
 import re
 from typing import Optional
-from pydantic import BaseModel, EmailStr, field_validator, Field
+from pydantic import BaseModel, EmailStr, field_validator, model_validator, Field, ValidationError
+from pydantic_core import PydanticCustomError
 
 
 class UserRegister(BaseModel):
@@ -54,7 +55,7 @@ class UserRegister(BaseModel):
 
     email: EmailStr
     password: str = Field(..., min_length=1, max_length=20)
-    password_confirm: str
+    password_confirm: str = Field(..., min_length=1)
     nickname: str = Field(..., min_length=1, max_length=10)
     profile_image: Optional[str] = None
 
@@ -94,6 +95,24 @@ class UserRegister(BaseModel):
 
         if not (has_upper and has_lower and has_digit and has_special):
             raise ValueError(pwmessage)
+
+        return v
+
+    @field_validator('password_confirm')
+    @classmethod
+    def validate_password_confirm(cls, v, info):
+        """
+        비밀번호 확인 검증:
+        1. 빈 값이 아닌지 확인
+        2. password와 일치하는지 확인
+        """
+        # 1. 빈 값 검증
+        if not v or len(v.strip()) == 0:
+            raise ValueError("*비밀번호 확인을 입력해주세요")
+
+        # 2. 비밀번호 일치 검증
+        if 'password' in info.data and v != info.data['password']:
+            raise ValueError("*비밀번호가 일치하지 않습니다.")
 
         return v
 
