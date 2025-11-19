@@ -11,6 +11,7 @@ Development Routes
 
 Endpoints:
 - POST /dev/reset: 모든 데이터 초기화
+- GET /dev/status: 현재 데이터 상태 조회
 """
 
 from typing import Dict

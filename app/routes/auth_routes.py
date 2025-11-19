@@ -25,7 +25,11 @@ Note:
 
 Endpoints:
 - POST /auth/register: 회원가입
+- GET /auth/check-email/{email}: 이메일 중복 확인
+- GET /auth/check-nickname/{nickname}: 닉네임 중복 확인
+
 - POST /auth/login: 로그인
+
 - PATCH /auth/users/{user_id}/nickname: 닉네임 수정
 - DELETE /auth/users/{user_id}: 회원 탈퇴
 """
@@ -86,6 +90,68 @@ def register(user_data: UserRegister) -> Dict:
     except Exception as e:
         logger.error(f"회원가입 실패 - email: {user_data.email}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="회원가입 중 오류가 발생했습니다")
+
+
+@router.get("/check-email/{email}")
+def check_email_duplicate(email: str) -> Dict:
+    """
+    이메일 중복 확인 API (GET /auth/check-email/{email})
+
+    Args:
+    - email (str): 확인할 이메일
+
+    Returns:
+    - Dict: 중복 여부 정보
+
+    Status Code:
+    - 200 OK: 확인 성공
+    - 500 Internal Server Error: 서버 오류
+    """
+    try:
+        # Controller의 model 인스턴스 사용 (메모리 데이터 공유)
+        existing_user = controller.user_model.find_by_email(email)
+        is_duplicate = existing_user is not None
+
+        return {
+            "email": email,
+            "is_duplicate": is_duplicate,
+            "message": "*중복된 이메일입니다" if is_duplicate else "사용 가능한 이메일입니다"
+        }
+
+    except Exception as e:
+        logger.error(f"이메일 중복 확인 실패 - email: {email}, error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="이메일 확인 중 오류가 발생했습니다")
+
+
+@router.get("/check-nickname/{nickname}")
+def check_nickname_duplicate(nickname: str) -> Dict:
+    """
+    닉네임 중복 확인 API (GET /auth/check-nickname/{nickname})
+
+    Args:
+    - nickname (str): 확인할 닉네임
+
+    Returns:
+    - Dict: 중복 여부 정보
+
+    Status Code:
+    - 200 OK: 확인 성공
+    - 500 Internal Server Error: 서버 오류
+    """
+    try:
+        # Controller의 model 인스턴스 사용 (메모리 데이터 공유)
+        existing_user = controller.user_model.find_by_nickname(nickname)
+        is_duplicate = existing_user is not None
+
+        return {
+            "nickname": nickname,
+            "is_duplicate": is_duplicate,
+            "message": "*중복된 닉네임 입니다." if is_duplicate else "사용 가능한 닉네임입니다"
+        }
+
+    except Exception as e:
+        logger.error(f"닉네임 중복 확인 실패 - nickname: {nickname}, error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="닉네임 확인 중 오류가 발생했습니다")
 
 
 @router.post("/login", status_code=200)

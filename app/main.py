@@ -14,7 +14,7 @@ Route → Controller → (향후: Model/Repository)
 
 Endpoints:
 ------- Basic Operations (main.py) -------
-- GET /: Health Check
+- GET /: Health Check or 메인 랜딩 페이지 리다이렉트
 - GET /custom: 커스텀 응답 (Status Code, Headers, Cookie 제어)
 
 ------- CRUD Operations (post_routes.py) -------
@@ -28,8 +28,10 @@ Endpoints:
 
 from typing import Dict
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 from app.routes import post_routes, auth_routes, comment_routes, dev_routes
 
@@ -42,6 +44,16 @@ app = FastAPI(
     title="Community Backend",
     description="A simple Community backend project using FastAPI with Router-Controller Architecture",
     version="0.2.0"  # version update after refactoring
+)
+
+# ==================== CORS Middleware ====================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 개발 환경에서는 모든 origin 허용
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -144,6 +156,9 @@ app.include_router(auth_routes.router)
 app.include_router(comment_routes.router)
 app.include_router(dev_routes.router)  # 개발/테스트용 라우터
 
+# Static Files (정적 파일 서빙)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # In-Memory Storage 삭제 - 이제 Controller에서 관리
 #posts = []
@@ -154,15 +169,17 @@ app.include_router(dev_routes.router)  # 개발/테스트용 라우터
 
 
 @app.get("/")
-def root() -> Dict[str, str]:
+def root():
     """
     루트 엔드포인트 (GET /)
-    - Health Check: 간단한 환영 메시지 반환하여 서비스 정상 작동 확인
-    
+    - 헬스 체크
+    - 메인 랜딩 페이지로 리다이렉트
+
     Returns:
-    - Dict[str, str]: 환영 메시지
+    - RedirectResponse: /static/index.html로 리다이렉트
     """
-    return {"message": "KTB AI Community"}
+    return {"message": "Community Backend is running."}
+    #return RedirectResponse(url="/static/index.html")
 
 
 

@@ -14,6 +14,13 @@ Comment Routes
 Note:
 - APIRouter: FastAPI의 모듈화된 라우팅 시스템
 - HTTPException: FastAPI의 HTTP 예외 클래스
+
+Endpoints:
+- POST /comments: 댓글 생성
+- GET /comments/post/{post_id}: 특정 게시글의 댓글 목록 조회
+- GET /comments/{comment_id}: 특정 댓글 조회
+- PUT /comments/{comment_id}: 댓글 수정
+- DELETE /comments/{comment_id}: 댓글 삭제
 """
 
 from typing import Dict, List
