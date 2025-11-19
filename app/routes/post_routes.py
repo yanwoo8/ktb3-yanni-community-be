@@ -14,6 +14,19 @@ Post Routes
 Note:
 - APIRouter: FastAPI의 모듈화된 라우팅 시스템
 - HTTPException: FastAPI의 HTTP 예외 클래스
+
+Endpoints:
+- POST /posts: 게시글 생성
+- GET /posts: 전체 게시글 조회
+- GET /posts/{post_id}: 특정 게시글 조회
+
+- PUT /posts/{post_id}: 게시글 전체 수정
+- PATCH /posts/{post_id}: 게시글 부분 수정
+- DELETE /posts/{post_id}: 게시글 삭제
+
+- POST /posts/{post_id}/like: 게시글 좋아요 토글
+- GET /posts/{post_id}/is-liked: 게시글 좋아요 상태 확인
+- DELETE /posts/{post_id}/like: 게시글 좋아요 취소
 """
 
 

@@ -780,7 +780,6 @@ curl -X GET http://localhost:8000/posts/1
 - `bashs/test_api.sh`: 이동됨 (#4 테스트)
 
 
-
 **검증:** CURL 사용하여 기존 CRUD 기능이 동일하게 동작하는지 확인
 
 ### 5-2. 결과
