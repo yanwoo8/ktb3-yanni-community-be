@@ -1,8 +1,8 @@
 """
-Comment Model
+Comment Model (Database Repository)
 
 역할:
-1. 데이터 접근 계층: 댓글 In-memory 저장소 관리
+1. 데이터 접근 계층: 댓글 데이터베이스와의 상호작용
 2. CRUD 연산: 댓글 생성, 조회, 수정, 삭제
 3. 관계 데이터 관리: 게시글별 댓글, 작성자별 댓글 조회
 
@@ -11,13 +11,14 @@ Comment Model
 - 단일 책임 원칙(SRP): 데이터 접근만 담당
 - 참조 무결성: 게시글 삭제 시 댓글도 삭제 (CASCADE)
 
-Note:
-- In-memory 저장소 (서버 재시작 시 데이터 소실)
-- 프로덕션: ORM + Foreign Key Constraint 권장
+변경사항:
+- In-memory List[Dict] → SQLAlchemy ORM (SQLite)
+- CASCADE DELETE: ORM relationship으로 자동 처리
 """
 
-from typing import List, Dict, Optional
-from datetime import datetime
+from typing import Optional
+from sqlalchemy.orm import Session
+from app.db_models import Comment
 
 
 class CommentModel:
@@ -25,7 +26,7 @@ class CommentModel:
     댓글 데이터 접근 계층
 
     Attributes:
-    - comments (List[Dict]): In-memory 댓글 저장소
+    - db (Session): SQLAlchemy 세션
 
     Methods:
     - create: 댓글 생성
@@ -38,49 +39,47 @@ class CommentModel:
     - delete_by_author: 작성자의 모든 댓글 삭제
     """
 
-    def __init__(self):
-        """Model 초기화"""
-        self.comments: List[Dict] = []
-        self._next_id: int = 1  # 다음 댓글 ID를 추적하는 카운터
+    def __init__(self, db: Session):
+        """
+        Model 초기화
+
+        Args:
+        - db (Session): SQLAlchemy 세션 (의존성 주입)
+        """
+        self.db = db
 
 
     # ==================== CREATE ====================
 
-    def create(self, post_id: int, author_id: int, author_nickname: str,
-               author_profile_image: Optional[str], content: str) -> Dict:
+    def create(self, post_id: int, author_id: int, content: str) -> Comment:
         """
         댓글 생성
 
         Args:
         - post_id (int): 게시글 ID
         - author_id (int): 작성자 ID
-        - author_nickname (str): 작성자 닉네임
-        - author_profile_image (Optional[str]): 작성자 프로필 이미지
         - content (str): 댓글 내용
 
         Returns:
-        - Dict: 생성된 댓글 정보
+        - Comment: 생성된 댓글 ORM 객체
 
         Note:
-        - ID는 삭제 후에도 중복되지 않도록 _next_id 카운터 사용
+        - author_nickname, author_profile_image는 relationship을 통해 자동 조회
         """
-        new_comment = {
-            "id": self._next_id,
-            "post_id": post_id,
-            "author_id": author_id,
-            "author_nickname": author_nickname,
-            "author_profile_image": author_profile_image,
-            "content": content,
-            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        }
-        self.comments.append(new_comment)
-        self._next_id += 1  # 다음 ID를 위해 증가
+        new_comment = Comment(
+            post_id=post_id,
+            author_id=author_id,
+            content=content
+        )
+        self.db.add(new_comment)
+        self.db.commit()
+        self.db.refresh(new_comment)
         return new_comment
 
 
     # ==================== READ ====================
 
-    def find_by_id(self, comment_id: int) -> Optional[Dict]:
+    def find_by_id(self, comment_id: int) -> Optional[Comment]:
         """
         ID로 댓글 조회
 
@@ -88,12 +87,12 @@ class CommentModel:
         - comment_id (int): 댓글 ID
 
         Returns:
-        - Optional[Dict]: 댓글 정보 (없으면 None)
+        - Optional[Comment]: 댓글 ORM 객체 (없으면 None)
         """
-        return next((c for c in self.comments if c["id"] == comment_id), None)
+        return self.db.query(Comment).filter(Comment.id == comment_id).first()
 
 
-    def find_by_post(self, post_id: int) -> List[Dict]:
+    def find_by_post(self, post_id: int) -> list[Comment]:
         """
         게시글별 댓글 조회 (오래된 순)
 
@@ -101,15 +100,15 @@ class CommentModel:
         - post_id (int): 게시글 ID
 
         Returns:
-        - List[Dict]: 댓글 목록
+        - list[Comment]: 댓글 ORM 객체 목록
         """
-        return sorted(
-            [c for c in self.comments if c["post_id"] == post_id],
-            key=lambda x: x["created_at"]
-        )
+        return self.db.query(Comment)\
+            .filter(Comment.post_id == post_id)\
+            .order_by(Comment.created_at)\
+            .all()
 
 
-    def find_by_author(self, author_id: int) -> List[Dict]:
+    def find_by_author(self, author_id: int) -> list[Comment]:
         """
         작성자별 댓글 조회
 
@@ -117,14 +116,14 @@ class CommentModel:
         - author_id (int): 작성자 ID
 
         Returns:
-        - List[Dict]: 댓글 목록
+        - list[Comment]: 댓글 ORM 객체 목록
         """
-        return [c for c in self.comments if c["author_id"] == author_id]
+        return self.db.query(Comment).filter(Comment.author_id == author_id).all()
 
 
     # ==================== UPDATE ====================
 
-    def update(self, comment_id: int, content: str) -> Optional[Dict]:
+    def update(self, comment_id: int, content: str) -> Optional[Comment]:
         """
         댓글 수정
 
@@ -133,14 +132,16 @@ class CommentModel:
         - content (str): 새 댓글 내용
 
         Returns:
-        - Optional[Dict]: 수정된 댓글 (없으면 None)
+        - Optional[Comment]: 수정된 댓글 (없으면 None)
         """
-        for i, comment in enumerate(self.comments):
-            if comment["id"] == comment_id:
-                self.comments[i]["content"] = content
-                return self.comments[i]
+        comment = self.find_by_id(comment_id)
+        if not comment:
+            return None
 
-        return None
+        comment.content = content
+        self.db.commit()
+        self.db.refresh(comment)
+        return comment
 
 
     # ==================== DELETE ====================
@@ -155,12 +156,13 @@ class CommentModel:
         Returns:
         - bool: 삭제 성공 여부
         """
-        for i, comment in enumerate(self.comments):
-            if comment["id"] == comment_id:
-                self.comments.pop(i)
-                return True
+        comment = self.find_by_id(comment_id)
+        if not comment:
+            return False
 
-        return False
+        self.db.delete(comment)
+        self.db.commit()
+        return True
 
 
     def delete_by_post(self, post_id: int) -> int:
@@ -173,9 +175,14 @@ class CommentModel:
         Returns:
         - int: 삭제된 댓글 수
         """
-        initial_count = len(self.comments)
-        self.comments = [c for c in self.comments if c["post_id"] != post_id]
-        return initial_count - len(self.comments)
+        comments = self.find_by_post(post_id)
+        count = len(comments)
+
+        for comment in comments:
+            self.db.delete(comment)
+
+        self.db.commit()
+        return count
 
 
     def delete_by_author(self, author_id: int) -> int:
@@ -188,6 +195,11 @@ class CommentModel:
         Returns:
         - int: 삭제된 댓글 수
         """
-        initial_count = len(self.comments)
-        self.comments = [c for c in self.comments if c["author_id"] != author_id]
-        return initial_count - len(self.comments)
+        comments = self.find_by_author(author_id)
+        count = len(comments)
+
+        for comment in comments:
+            self.db.delete(comment)
+
+        self.db.commit()
+        return count

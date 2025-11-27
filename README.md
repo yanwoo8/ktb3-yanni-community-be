@@ -42,6 +42,11 @@
 - [5-2. 결과](#5-2-결과)
 - [5-3. 문제 및 해결](#5-3-문제-및-해결)
 
+[6. 데이터베이스 통합 (SQLite + SQLAlchemy)](#6-데이터베이스-통합-sqlite--sqlalchemy)
+- [6-1. 설명](#6-1-설명)
+- [6-2. 결과](#6-2-결과)
+- [6-3. 문제 및 해결](#6-3-문제-및-해결)
+
 
 ---
 
@@ -798,9 +803,107 @@ curl -X GET http://localhost:8000/posts/1
 
 
 
-## 다음 단계
+## 6. 데이터베이스 통합 (SQLite + SQLAlchemy)
 
-- [ ] 미들웨어 적용
+### 6-1. 설명
+
+**branch name:** `fix/authorizing`
+**구현 내용:**
+1. In-memory 저장소 → SQLite 데이터베이스 마이그레이션
+- `app/database.py`: SQLite 연결 설정, 세션 관리, 의존성 주입
+- `app/db_models.py`: ORM 모델 정의 (User, Post, Comment, post_likes)
+
+2. Model 계층 리팩토링 - SQLAlchemy ORM 적용
+- `app/models/user_model.py`: In-memory List[Dict] → SQLAlchemy Session
+- `app/models/post_model.py`: 게시글 CRUD + 좋아요 기능 (many-to-many)
+- `app/models/comment_model.py`: 댓글 CRUD + CASCADE 처리
+
+3. Controller 계층 업데이트 - ORM 객체 변환
+- `app/controllers/user_controller.py`: ORM User → Dict 변환
+- `app/controllers/post_controller.py`: `_post_to_dict()` 헬퍼 메서드 추가
+- `app/controllers/comment_controller.py`: `_comment_to_dict()` 헬퍼 메서드 추가
+
+4. Routes 계층 업데이트 - DB 세션 의존성 주입
+- `app/routes/auth_routes.py`: Depends(get_db)로 세션 주입
+- `app/routes/post_routes.py`: 게시글 CRUD + SQLAlchemyError 예외 처리
+- `app/routes/comment_routes.py`: 댓글 CRUD + 권한 검증
+- `app/routes/dev_routes.py`: DB 초기화 및 상태 조회
+
+5. 데이터베이스 설계
+- CASCADE DELETE: User 삭제 시 Posts/Comments 자동 삭제
+- Many-to-Many: post_likes 테이블로 좋아요 기능
+- ORM Relationship: likes, comment_count 자동 계산
+
+**검증:** CURL 사용하여 모든 CRUD 기능이 정상 작동하는지 확인
+
+### 6-2. 결과
+
+<details>
+<summary>직접 테스트해보기</summary>
+
+```sh
+uvicorn app.main:app --reload --port 8000
+```
+- API 문서: http://localhost:8000/docs
+
+```sh
+# 1. 회원가입
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test1234!","password_confirm":"Test1234!","nickname":"테스터","profile_image":"https://example.com/profile.jpg"}'
+
+# 2. 게시글 작성
+curl -X POST http://localhost:8000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title":"테스트 게시글","content":"데이터베이스 테스트","author_id":1}'
+
+# 3. 댓글 작성
+curl -X POST http://localhost:8000/comments \
+  -H "Content-Type: application/json" \
+  -d '{"post_id":1,"author_id":1,"content":"테스트 댓글"}'
+
+# 4. 좋아요
+curl -X POST 'http://localhost:8000/posts/1/like?user_id=1'
+
+# 5. 게시글 조회
+curl -X GET http://localhost:8000/posts/1
+
+# 6. DB 상태 확인
+curl -X GET http://localhost:8000/dev/status
+```
+</details>
+
+### 6-3. 문제 및 해결
+
+**문제:** In-memory 저장소에서 데이터베이스로 전환 시 의존성 주입 패턴 변경 필요
+- **기존:** Singleton 패턴으로 전역 Controller 인스턴스 공유 (`controller_instances.py`)
+- **문제점:** 데이터베이스는 요청마다 새 세션이 필요하므로 Singleton 부적합
+- **해결:** FastAPI의 `Depends()`를 활용한 요청별 의존성 주입
+  ```python
+  def get_post_controller(db: Session = Depends(get_db)) -> PostController:
+      post_model = PostModel(db)
+      user_model = UserModel(db)
+      user_controller = UserController(user_model)
+      return PostController(post_model, user_controller)
+  ```
+
+**결과:**
+- 모든 엔드포인트가 데이터베이스 기반으로 정상 작동
+- 데이터 영속성 보장 (서버 재시작 후에도 데이터 유지)
+- CASCADE DELETE로 참조 무결성 자동 관리
+
+
+
+
+
+---
+
+
+
+
+## 다음 단계
+- [ ] 비밀번호 해싱 (bcrypt)
 - [ ] 인증/인가 (JWT Token)
 - [ ] 페이지네이션 구현
+- [ ] 단위 테스트 작성 (pytest)
 - [ ] FE 구현

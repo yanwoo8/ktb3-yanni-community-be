@@ -1,22 +1,25 @@
 """
-User Model
+User Model (Database Repository)
 
 역할:
-1. 데이터 접근 계층 (Data Access Layer): In-memory 저장소 관리
+1. 데이터 접근 계층 (Data Access Layer): 데이터베이스와의 상호작용
 2. CRUD 연산: 사용자 데이터 생성, 조회, 수정, 삭제
 3. 데이터 무결성: 중복 검증, 존재 여부 확인
 
 설계 원칙:
-- 단일 책임 원칙(SRP): 데이터 접근만 담당
-- 비즈니스 로직 분리: Controller에서 처리
 - Repository 패턴: 데이터 소스 추상화
+- 단일 책임 원칙(SRP): 데이터 접근만 담당
+- 의존성 주입: SQLAlchemy Session 주입
 
-Note:
-- 현재는 In-memory 저장소 (List[Dict])
-- 실제 프로덕션에서는 DB ORM (SQLAlchemy 등) 사용
+변경사항:
+- In-memory List[Dict] → SQLAlchemy ORM (SQLite)
+- 트랜잭션 관리: commit/rollback 자동 처리
 """
 
-from typing import List, Dict, Optional
+from typing import Optional
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from app.db_models import User
 
 
 class UserModel:
@@ -24,7 +27,7 @@ class UserModel:
     사용자 데이터 접근 계층
 
     Attributes:
-    - users (List[Dict]): In-memory 사용자 저장소
+    - db (Session): SQLAlchemy 세션
 
     Methods:
     - create: 사용자 생성
@@ -36,16 +39,20 @@ class UserModel:
     - delete: 사용자 삭제
     """
 
-    def __init__(self):
-        """Model 초기화"""
-        self.users: List[Dict] = []
-        self._next_id: int = 1  # 다음 사용자 ID를 추적하는 카운터
+    def __init__(self, db: Session):
+        """
+        Model 초기화
+
+        Args:
+        - db (Session): SQLAlchemy 세션 (의존성 주입)
+        """
+        self.db = db
 
 
     # ==================== CREATE ====================
 
     def create(self, email: str, password: str, nickname: str,
-               profile_image: Optional[str] = None) -> Dict:
+               profile_image: Optional[str] = None) -> User:
         """
         사용자 생성
 
@@ -56,33 +63,30 @@ class UserModel:
         - profile_image (Optional[str]): 프로필 이미지 URL
 
         Returns:
-        - Dict: 생성된 사용자 정보 (비밀번호 제외)
+        - User: 생성된 사용자 ORM 객체
 
-        Note:
-        - ID는 삭제 후에도 중복되지 않도록 _next_id 카운터 사용
+        Raises:
+        - IntegrityError: 이메일/닉네임 중복 시 (UNIQUE 제약 위반)
         """
-        new_user = {
-            "id": self._next_id,
-            "email": email,
-            "password": password,
-            "nickname": nickname,
-            "profile_image": profile_image
-        }
-        self.users.append(new_user)
-        self._next_id += 1  # 다음 ID를 위해 증가
-
-        # 비밀번호를 제외한 정보 반환
-        return {
-            "id": new_user["id"],
-            "email": new_user["email"],
-            "nickname": new_user["nickname"],
-            "profile_image": new_user["profile_image"]
-        }
+        try:
+            new_user = User(
+                email=email,
+                password=password,
+                nickname=nickname,
+                profile_image=profile_image
+            )
+            self.db.add(new_user)
+            self.db.commit()
+            self.db.refresh(new_user)  # DB에서 생성된 값(id, created_at) 가져오기
+            return new_user
+        except IntegrityError:
+            self.db.rollback()
+            raise
 
 
     # ==================== READ ====================
 
-    def find_by_id(self, user_id: int) -> Optional[Dict]:
+    def find_by_id(self, user_id: int) -> Optional[User]:
         """
         ID로 사용자 조회
 
@@ -90,12 +94,12 @@ class UserModel:
         - user_id (int): 사용자 ID
 
         Returns:
-        - Optional[Dict]: 사용자 정보 (없으면 None)
+        - Optional[User]: 사용자 ORM 객체 (없으면 None)
         """
-        return next((u for u in self.users if u["id"] == user_id), None)
+        return self.db.query(User).filter(User.id == user_id).first()
 
 
-    def find_by_email(self, email: str) -> Optional[Dict]:
+    def find_by_email(self, email: str) -> Optional[User]:
         """
         이메일로 사용자 조회
 
@@ -103,12 +107,12 @@ class UserModel:
         - email (str): 이메일
 
         Returns:
-        - Optional[Dict]: 사용자 정보 (없으면 None)
+        - Optional[User]: 사용자 ORM 객체 (없으면 None)
         """
-        return next((u for u in self.users if u["email"] == email), None)
+        return self.db.query(User).filter(User.email == email).first()
 
 
-    def find_by_nickname(self, nickname: str) -> Optional[Dict]:
+    def find_by_nickname(self, nickname: str) -> Optional[User]:
         """
         닉네임으로 사용자 조회
 
@@ -116,32 +120,24 @@ class UserModel:
         - nickname (str): 닉네임
 
         Returns:
-        - Optional[Dict]: 사용자 정보 (없으면 None)
+        - Optional[User]: 사용자 ORM 객체 (없으면 None)
         """
-        return next((u for u in self.users if u["nickname"] == nickname), None)
+        return self.db.query(User).filter(User.nickname == nickname).first()
 
 
-    def find_all(self) -> List[Dict]:
+    def find_all(self) -> list[User]:
         """
         전체 사용자 조회
 
         Returns:
-        - List[Dict]: 전체 사용자 목록 (비밀번호 제외)
+        - list[User]: 전체 사용자 ORM 객체 목록
         """
-        return [
-            {
-                "id": u["id"],
-                "email": u["email"],
-                "nickname": u["nickname"],
-                "profile_image": u["profile_image"]
-            }
-            for u in self.users
-        ]
+        return self.db.query(User).all()
 
 
     # ==================== UPDATE ====================
 
-    def update(self, user_id: int, **kwargs) -> Optional[Dict]:
+    def update(self, user_id: int, **kwargs) -> Optional[User]:
         """
         사용자 정보 수정
 
@@ -150,24 +146,26 @@ class UserModel:
         - **kwargs: 수정할 필드들 (nickname, profile_image 등)
 
         Returns:
-        - Optional[Dict]: 수정된 사용자 정보 (없으면 None)
+        - Optional[User]: 수정된 사용자 ORM 객체 (없으면 None)
+
+        Raises:
+        - IntegrityError: 닉네임 중복 시
         """
-        for i, user in enumerate(self.users):
-            if user["id"] == user_id:
-                # 전달된 필드만 업데이트
-                for key, value in kwargs.items():
-                    if key in user and value is not None:
-                        self.users[i][key] = value
+        user = self.find_by_id(user_id)
+        if not user:
+            return None
 
-                # 비밀번호 제외하고 반환
-                return {
-                    "id": self.users[i]["id"],
-                    "email": self.users[i]["email"],
-                    "nickname": self.users[i]["nickname"],
-                    "profile_image": self.users[i]["profile_image"]
-                }
+        try:
+            for key, value in kwargs.items():
+                if hasattr(user, key) and value is not None:
+                    setattr(user, key, value)
 
-        return None
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+        except IntegrityError:
+            self.db.rollback()
+            raise
 
 
     # ==================== DELETE ====================
@@ -181,10 +179,14 @@ class UserModel:
 
         Returns:
         - bool: 삭제 성공 여부
-        """
-        for i, user in enumerate(self.users):
-            if user["id"] == user_id:
-                self.users.pop(i)
-                return True
 
-        return False
+        Note:
+        - CASCADE DELETE: 사용자의 게시글, 댓글도 자동 삭제 (ORM 설정)
+        """
+        user = self.find_by_id(user_id)
+        if not user:
+            return False
+
+        self.db.delete(user)
+        self.db.commit()
+        return True

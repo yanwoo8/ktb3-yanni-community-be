@@ -27,23 +27,45 @@ Endpoints:
 """
 
 from typing import Dict
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
-from app.routes import post_routes, auth_routes, comment_routes, dev_routes
+from app.routes import auth_routes, post_routes, comment_routes, dev_routes
+from app.database import init_db
 
 
+# ==================== Lifespan Event ====================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI 생명주기 이벤트 (Lifespan Event)
+
+    서버 시작 시: 데이터베이스 초기화
+    서버 종료 시: 정리 작업
+    """
+    # 서버 시작 시 실행
+    print("🚀 서버 시작: 데이터베이스 초기화 중...")
+    init_db()
+    print("✅ 데이터베이스 초기화 완료")
+
+    yield  # 서버 실행 중
+
+    # 서버 종료 시 실행
+    print("🛑 서버 종료: 정리 작업 완료")
 
 
 # ==================== FastAPI App Setup ====================
 
 app = FastAPI(
-    title="Community Backend",
-    description="A simple Community backend project using FastAPI with Router-Controller Architecture",
-    version="0.2.0"  # version update after refactoring
+    title="Community Backend (Database Version)",
+    description="A simple Community backend project using FastAPI with Router-Controller-Model Architecture + SQLite Database",
+    version="0.3.0",  # version update: database integration
+    lifespan=lifespan
 )
 
 # ==================== CORS Middleware ====================
@@ -151,10 +173,10 @@ Router 등록:
 2. 코드 재사용성: 다른 프로젝트에서 post_routes만 가져와 사용 가능
 3. 유지보수성: 각 모듈의 책임이 명확하여 수정이 용이
 """
-app.include_router(post_routes.router)
 app.include_router(auth_routes.router)
+app.include_router(post_routes.router)
 app.include_router(comment_routes.router)
-app.include_router(dev_routes.router)  # 개발/테스트용 라우터
+app.include_router(dev_routes.router)
 
 # Static Files (정적 파일 서빙)
 app.mount("/static", StaticFiles(directory="static"), name="static")
