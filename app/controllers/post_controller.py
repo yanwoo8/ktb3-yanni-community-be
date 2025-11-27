@@ -53,6 +53,33 @@ class PostController:
         self.user_controller = user_controller
 
 
+    # ==================== Helper Methods ====================
+
+    def _post_to_dict(self, post) -> Dict:
+        """
+        ORM Post 객체를 Dict로 변환
+
+        Args:
+        - post: Post ORM 객체
+
+        Returns:
+        - Dict: 게시글 정보
+        """
+        return {
+            "id": post.id,
+            "title": post.title,
+            "content": post.content,
+            "image_url": post.image_url,
+            "author_id": post.author_id,
+            "author_nickname": post.author.nickname,
+            "author_profile_image": post.author.profile_image,
+            "views": post.views,
+            "likes": len(post.liked_by_users),
+            "comment_count": len(post.comments),
+            "created_at": post.created_at.strftime("%Y-%m-%d %H:%M:%S") if post.created_at else None
+        }
+
+
     # ==================== CREATE ====================
 
     def create(self, title: str, content: str, author_id: int,
@@ -81,25 +108,21 @@ class PostController:
             author = self.user_controller.get_user_info(author_id)
 
             if not author:
-                raise ValueError(f"작성자 ID {author_id}를 찾을 수 없습니다 - 작성자 정보: {author}")
-            
-            author_nickname = author["nickname"]
-            author_profile_image = author.get("profile_image")
+                raise ValueError(f"작성자 ID {author_id}를 찾을 수 없습니다")
 
         else:
-            author_nickname = "Unknown"
-            author_profile_image = None
+            raise ValueError(f"작성자 ID {author_id}를 찾을 수 없습니다")
 
         # 게시글 생성 (Model에 위임)
-        return self.post_model.create(
-
+        post = self.post_model.create(
             title=title,
             content=content,
             author_id=author_id,
-            author_nickname=author_nickname,
-            author_profile_image=author_profile_image,
             image_url=image_url
         )
+
+        # ORM 객체를 Dict로 변환
+        return self._post_to_dict(post)
 
 
     # ==================== READ ====================
@@ -111,7 +134,8 @@ class PostController:
         Returns:
         - List[Dict]: 전체 게시글 목록
         """
-        return self.post_model.find_all()
+        posts = self.post_model.find_all()
+        return [self._post_to_dict(post) for post in posts]
 
 
     def get_by_id(self, post_id: int, increment_view: bool = False) -> Dict:
@@ -132,13 +156,13 @@ class PostController:
 
         if not post:
             raise ValueError(f"게시글 ID {post_id}가 존재하지 않습니다")
-    
+
         # 조회수 증가
         if increment_view:
             self.post_model.increment_views(post_id)
             post = self.post_model.find_by_id(post_id)  # 업데이트된 정보 반환
 
-        return post
+        return self._post_to_dict(post)
 
 
     # ==================== UPDATE ====================
@@ -170,7 +194,7 @@ class PostController:
         if not updated_post:
             raise ValueError(f"게시글 ID {post_id}가 존재하지 않습니다")
 
-        return updated_post
+        return self._post_to_dict(updated_post)
 
 
     def partial_update(self, post_id: int, title: Optional[str] = None,
@@ -201,7 +225,7 @@ class PostController:
         if not updated_post:
             raise ValueError(f"게시글 ID {post_id}가 존재하지 않습니다")
 
-        return updated_post
+        return self._post_to_dict(updated_post)
 
 
     # ==================== DELETE ====================
@@ -245,7 +269,7 @@ class PostController:
             raise ValueError(f"게시글 ID {post_id}가 존재하지 않습니다")
 
         post, liked = result
-        return {"post": post, "liked": liked}
+        return {"post": self._post_to_dict(post), "liked": liked}
 
 
     def is_liked_by_user(self, post_id: int, user_id: int) -> bool:
@@ -263,22 +287,5 @@ class PostController:
 
 
     # ==================== COMMENT COUNT ====================
-
-    def increment_comment_count(self, post_id: int) -> None:
-        """
-        댓글 수 증가
-
-        Args:
-        - post_id (int): 게시글 ID
-        """
-        self.post_model.increment_comment_count(post_id)
-
-
-    def decrement_comment_count(self, post_id: int) -> None:
-        """
-        댓글 수 감소
-
-        Args:
-        - post_id (int): 게시글 ID
-        """
-        self.post_model.decrement_comment_count(post_id)
+    # 주석: 댓글 수는 ORM relationship (len(post.comments))으로 자동 계산됨
+    # increment/decrement 메서드 불필요

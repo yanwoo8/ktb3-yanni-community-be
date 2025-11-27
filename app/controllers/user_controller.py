@@ -90,12 +90,20 @@ class UserController:
             raise ValueError("*중복된 닉네임 입니다.")
 
         # 5. 사용자 생성 (Model에 위임)
-        return self.user_model.create(
+        created_user = self.user_model.create(
             email=email,
             password=password,  # 실제로는 해싱하여 저장해야 함
             nickname=nickname,
             profile_image=profile_image
         )
+
+        # ORM 객체를 Dict로 변환하여 반환
+        return {
+            "id": created_user.id,
+            "email": created_user.email,
+            "nickname": created_user.nickname,
+            "profile_image": created_user.profile_image
+        }
 
 
     # ==================== LOGIN ====================
@@ -124,15 +132,15 @@ class UserController:
         user = self.user_model.find_by_email(email)
 
         # 사용자가 없거나 비밀번호가 틀린 경우
-        if not user or user["password"] != password:
+        if not user or user.password != password:
             raise ValueError("*아이디 또는 비밀번호를 확인해주세요")
 
         # 로그인 성공: 비밀번호를 제외한 사용자 정보 반환
         return {
-            "id": user["id"],
-            "email": user["email"],
-            "nickname": user["nickname"],
-            "profile_image": user["profile_image"]
+            "id": user.id,
+            "email": user.email,
+            "nickname": user.nickname,
+            "profile_image": user.profile_image
         }
 
 
@@ -153,31 +161,31 @@ class UserController:
             return None
 
         return {
-            "id": user["id"],
-            "email": user["email"],
-            "nickname": user["nickname"],
-            "profile_image": user["profile_image"]
+            "id": user.id,
+            "email": user.email,
+            "nickname": user.nickname,
+            "profile_image": user.profile_image
         }
 
 
     # ==================== UPDATE ====================
 
-    def update_nickname(self, user_id: int, new_nickname: str,
-                       post_model=None, comment_model=None) -> Dict:
+    def update_nickname(self, user_id: int, new_nickname: str) -> Dict:
         """
-        닉네임 수정 (CASCADE UPDATE: 게시글/댓글의 작성자 닉네임도 함께 업데이트)
+        닉네임 수정
 
         Args:
         - user_id (int): 사용자 ID
         - new_nickname (str): 새 닉네임
-        - post_model: PostModel 인스턴스 (CASCADE UPDATE용)
-        - comment_model: CommentModel 인스턴스 (CASCADE UPDATE용)
 
         Returns:
         - Dict: 수정된 사용자 정보
 
         Raises:
         - ValueError: 사용자가 존재하지 않거나 닉네임 중복 시
+
+        Note:
+        - CASCADE UPDATE는 데이터베이스에서 ORM relationship으로 자동 처리
         """
         # 사용자 찾기
         user = self.user_model.find_by_id(user_id)
@@ -185,74 +193,52 @@ class UserController:
             raise ValueError("사용자를 찾을 수 없습니다")
 
         # 현재 닉네임과 동일한 경우는 허용
-        if user["nickname"] == new_nickname:
+        if user.nickname == new_nickname:
             return {
-                "id": user["id"],
-                "email": user["email"],
-                "nickname": user["nickname"],
-                "profile_image": user["profile_image"]
+                "id": user.id,
+                "email": user.email,
+                "nickname": user.nickname,
+                "profile_image": user.profile_image
             }
 
         # 닉네임 중복 확인 (다른 사용자와 중복)
         existing_user = self.user_model.find_by_nickname(new_nickname)
-        if existing_user and existing_user["id"] != user_id:
+        if existing_user and existing_user.id != user_id:
             raise ValueError("*중복된 닉네임 입니다.")
 
         # 닉네임 업데이트 (Model에 위임)
         updated_user = self.user_model.update(user_id, nickname=new_nickname)
 
-        # CASCADE UPDATE: 작성한 게시글의 author_nickname 업데이트
-        if post_model:
-            for post in post_model.posts:
-                if post["author_id"] == user_id:
-                    post["author_nickname"] = new_nickname
-
-        # CASCADE UPDATE: 작성한 댓글의 author_nickname 업데이트
-        if comment_model:
-            for comment in comment_model.comments:
-                if comment["author_id"] == user_id:
-                    comment["author_nickname"] = new_nickname
-
-        return updated_user
+        return {
+            "id": updated_user.id,
+            "email": updated_user.email,
+            "nickname": updated_user.nickname,
+            "profile_image": updated_user.profile_image
+        }
 
 
     # ==================== DELETE ====================
 
-    def delete_user(self, user_id: int, post_model=None, comment_model=None) -> None:
+    def delete_user(self, user_id: int) -> None:
         """
         회원 탈퇴
 
         Args:
         - user_id (int): 사용자 ID
-        - post_model: 게시글 Model (CASCADE 삭제용)
-        - comment_model: 댓글 Model (CASCADE 삭제용)
 
         Raises:
         - ValueError: 사용자가 존재하지 않을 때
 
-        Business Logic:
-        - 사용자가 작성한 게시글 모두 삭제 (CASCADE)
-        - 사용자가 작성한 댓글 모두 삭제 (CASCADE)
-        - 사용자 정보 삭제
+        Note:
+        - CASCADE DELETE: 데이터베이스에서 ORM 설정으로 자동 처리
+        - 사용자 삭제 시 게시글, 댓글, 좋아요도 자동 삭제됨
         """
         # 사용자 존재 확인
         user = self.user_model.find_by_id(user_id)
         if not user:
             raise ValueError("사용자를 찾을 수 없습니다")
 
-        # 사용자의 게시글 모두 삭제 (CASCADE)
-        if post_model:
-            deleted_post_ids = post_model.delete_by_author(user_id)
-
-            # 삭제된 게시글의 댓글도 삭제
-            if comment_model:
-                for post_id in deleted_post_ids:
-                    comment_model.delete_by_post(post_id)
-
-        # 사용자의 댓글 모두 삭제
-        if comment_model:
-            comment_model.delete_by_author(user_id)
-
         # 사용자 삭제 (Model에 위임)
+        # CASCADE DELETE로 게시글, 댓글도 자동 삭제
         if not self.user_model.delete(user_id):
             raise ValueError("사용자 삭제에 실패했습니다")

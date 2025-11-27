@@ -52,6 +52,29 @@ class CommentController:
         self.post_controller = post_controller
 
 
+    # ==================== Helper Methods ====================
+
+    def _comment_to_dict(self, comment) -> Dict:
+        """
+        ORM Comment 객체를 Dict로 변환
+
+        Args:
+        - comment: Comment ORM 객체
+
+        Returns:
+        - Dict: 댓글 정보
+        """
+        return {
+            "id": comment.id,
+            "post_id": comment.post_id,
+            "author_id": comment.author_id,
+            "author_nickname": comment.author.nickname,
+            "author_profile_image": comment.author.profile_image,
+            "content": comment.content,
+            "created_at": comment.created_at.strftime("%Y-%m-%d %H:%M:%S") if comment.created_at else None
+        }
+
+
     # ==================== CREATE ====================
 
     def create(self, post_id: int, author_id: int, content: str) -> Dict:
@@ -89,29 +112,20 @@ class CommentController:
             author = self.user_controller.get_user_info(author_id)
             if not author:
                 raise ValueError(f"작성자 ID {author_id}를 찾을 수 없습니다")
-            
-            author_nickname = author["nickname"]
-            author_profile_image = author.get("profile_image")
 
         else:
             raise ValueError(f"작성자 ID {author_id}를 찾을 수 없습니다")
-            #author_nickname = "Unknown"
-            #author_profile_image = None
 
         # 댓글 생성 (Model에 위임)
         new_comment = self.comment_model.create(
             post_id=post_id,
             author_id=author_id,
-            author_nickname=author_nickname,
-            author_profile_image=author_profile_image,
             content=content
         )
 
-        # 게시글의 댓글수 증가
-        if self.post_controller:
-            self.post_controller.increment_comment_count(post_id)
+        # 게시글의 댓글수는 ORM relationship으로 자동 계산되므로 증가 불필요
 
-        return new_comment
+        return self._comment_to_dict(new_comment)
 
 
     # ==================== READ ====================
@@ -126,7 +140,8 @@ class CommentController:
         Returns:
         - List[Dict]: 댓글 목록 (오래된 순)
         """
-        return self.comment_model.find_by_post(post_id)
+        comments = self.comment_model.find_by_post(post_id)
+        return [self._comment_to_dict(comment) for comment in comments]
 
 
     def get_by_id(self, comment_id: int) -> Dict:
@@ -147,7 +162,7 @@ class CommentController:
         if not comment:
             raise ValueError(f"댓글 ID {comment_id}가 존재하지 않습니다")
 
-        return comment
+        return self._comment_to_dict(comment)
 
 
     # ==================== UPDATE ====================
@@ -180,7 +195,7 @@ class CommentController:
         if not updated_comment:
             raise ValueError(f"댓글 수정에 실패했습니다")
 
-        return updated_comment
+        return self._comment_to_dict(updated_comment)
 
 
     # ==================== DELETE ====================
@@ -213,6 +228,4 @@ class CommentController:
         if not self.comment_model.delete(comment_id):
             raise ValueError(f"댓글 삭제에 실패했습니다")
 
-        # 게시글의 댓글수 감소
-        if self.post_controller:
-            self.post_controller.decrement_comment_count(post_id)
+        # 게시글의 댓글수는 ORM relationship으로 자동 계산되므로 감소 불필요
