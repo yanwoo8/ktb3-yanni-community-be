@@ -807,7 +807,7 @@ curl -X GET http://localhost:8000/posts/1
 
 ### 6-1. 설명
 
-**branch name:** `fix/authorizing`
+**branch name:** `feature/database`
 **구현 내용:**
 1. In-memory 저장소 → SQLite 데이터베이스 마이그레이션
 - `app/database.py`: SQLite 연결 설정, 세션 관리, 의존성 주입
