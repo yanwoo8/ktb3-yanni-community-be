@@ -2,6 +2,10 @@
 
 ~~1. README 1-2장 다시 읽기 (main.py 이해)~~
 2. routes/의 HTTP 메서드 전부 확인
+
+
+
+
 3. post_routes.py의 각 함수가 뭘 하는지 주석 읽기
 
 4. README 3-5장 읽기 (아키텍처 리팩토링)
@@ -206,6 +210,13 @@ routing_table = {
     - Endpoint 정의 시 URL의 일부를 변수로 받아 처리하도록 작성하는 것.
     - `@app.get("/users/{user_id}")`
 
+`from fastapi import APIRouter`:
+- 라우트 그룹화: 관련된 엔드포인트들을 하나의 모듈로 묶음
+- 공통 설정 적용: 모든 엔드포인트에 /posts prefix 자동 추가
+- API 문서화: tags=["posts"]로 Swagger UI에서 그룹화
+- 모듈화: main.py에서 app.include_router(router)로 등록
+- 사용법: route file에서 글로벌로 한 번만 생성하고 이후 모든 엔드포인트에서 재사용. 동일한 router 인스턴스에 여러 엔드포인트를 등록할 수 있음
+
 
 ### Endpoint vs. HTTP message
 
@@ -291,10 +302,21 @@ routing_table = {
     - **식당 예시: 창고 관리자 (재료 가져오기)**
 
 
+- **Dependency Injection 의존성 주입**
+    - A가 동작하기 위해 B가 필요할 때, A는 B에 의존한다
+    - fastapi: `Depends()` 함수를 통해 의존성을 선언
+    - `Afunction(param = Depends(Bfunction))` == A는 B를 필요로 한다.
+    - 이러면 fastapi가 알아서 B를 먼저 수행할 수 있도록 보장해줌
+
+
+
+
+
+
+
 - ❓관심사의 분리 (SoC) 개념
 - ❓계층화 아키텍처 (Layered Architecture)
 - ❓MVC 패턴 (Model-View-Controller)
-- ❓의존성 주입 (Dependency Injection)
 
 - ❓Domain-Driven Design (DDD)
 - ❓Clean Architecture
