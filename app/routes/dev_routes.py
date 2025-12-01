@@ -19,8 +19,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.database import get_db, engine, Base
-from app.db_models import User, Post, Comment, post_likes
+from app.databases import get_db, engine, Base
+from app.databases.db_models import User, Post, Comment, post_likes
 import logging
 
 

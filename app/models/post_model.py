@@ -19,7 +19,7 @@ Post Model (Database Repository)
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from app.db_models import Post, User
+from app.databases.db_models import Post, User
 
 
 class PostModel:

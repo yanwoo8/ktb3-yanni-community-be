@@ -116,7 +116,7 @@ def init_db():
     호출 시점:
     - 서버 시작 시 (main.py의 lifespan 이벤트)
     """
-    from app.db_models import User, Post, Comment  # 순환 import 방지
+    from app.databases.db_models import User, Post, Comment  # 순환 import 방지
     Base.metadata.create_all(bind=engine)
     # 모든 테이블을 데이터베이스에 생성
     # 이미 테이블이 있으면 건너뜀 (안전)

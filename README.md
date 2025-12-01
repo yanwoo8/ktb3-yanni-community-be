@@ -47,6 +47,11 @@
 - [6-2. 결과](#6-2-결과)
 - [6-3. 문제 및 해결](#6-3-문제-및-해결)
 
+[7. AI 모델 서빙 - 자동 댓글 생성](#7-ai-모델-서빙---자동-댓글-생성)
+- [7-1. 설명](#7-1-설명)
+- [7-2. 결과](#7-2-결과)
+- [7-3. 기술 스택](#7-3-기술-스택)
+
 
 ---
 
@@ -901,7 +906,157 @@ curl -X GET http://localhost:8000/dev/status
 
 
 
+## 7. AI 모델 서빙 - 자동 댓글 생성
+
+### 7-1. 설명
+
+**branch name:** `feature/ai-comment`
+**구현 내용:**
+1. OpenRouter API를 활용한 LLM 모델 서빙
+- `app/services/ai_comment_service.py`: AI 댓글 생성 서비스
+- 무료 모델 사용: `google/gemini-2.0-flash-exp:free`
+- 비동기 HTTP 통신: httpx
+
+2. 백그라운드 작업으로 자동 댓글 추가
+- `app/routes/post_routes.py`: 게시글 생성 시 BackgroundTasks 활용
+- 게시글 생성 응답과 독립적으로 AI 댓글 생성
+- 실패 시 fallback 메시지 사용
+
+3. 환경 설정 자동화
+- `setup.sh`: 로컬 환경 자동 설정 스크립트
+- `.env` 파일 생성 및 API 키 설정 안내
+- 의존성 패키지 자동 설치
+
+**AI 모델 서빙 특징:**
+- **무료 사용**: OpenRouter의 무료 모델 활용
+- **비동기 처리**: 게시글 생성 성능에 영향 없음
+- **에러 핸들링**: API 실패 시 fallback 메시지 반환
+- **한국어 지원**: 자연스러운 한국어 댓글 생성
+
+**검증:** 게시글 생성 후 자동으로 AI 댓글이 추가되는지 확인
+
+### 7-2. 결과
+
+<details>
+<summary>빠른 시작 (자동 설정)</summary>
+
+```sh
+# 1. 설정 스크립트 실행
+chmod +x setup.sh
+./setup.sh
+
+# 2. .env 파일에서 OpenRouter API 키 설정
+# OPENROUTER_API_KEY=your_api_key_here
+
+# 3. 서버 실행
+uvicorn app.main:app --reload
+```
+
+**OpenRouter API 키 발급:**
+1. https://openrouter.ai/keys 접속
+2. 무료 계정 생성
+3. API 키 발급 (무료 크레딧 제공)
+4. `.env` 파일에 키 입력
+
+</details>
+
+<details>
+<summary>AI 댓글 테스트</summary>
+
+```sh
+# 1. 회원가입
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ai@test.com","password":"Test1234!","password_confirm":"Test1234!","nickname":"사용자","profile_image":"https://example.com/ai.jpg"}'
+
+# 2. 게시글 작성 (AI 댓글 자동 생성!)
+curl -X POST http://localhost:8000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title":"FastAPI와 AI 통합","content":"OpenRouter를 사용해서 무료로 LLM 모델을 서빙할 수 있습니다!","author_id":1}'
+
+# 3. 게시글 조회 (AI 댓글 확인)
+curl -X GET http://localhost:8000/posts/1
+
+# 4. 댓글 목록 조회
+curl -X GET http://localhost:8000/posts/1/comments
+```
+
+**예상 결과:**
+- 게시글 생성 즉시 201 응답 반환
+- 백그라운드에서 AI 댓글 생성 (2-5초 소요)
+- 댓글 목록 조회 시 AI가 작성한 첫 댓글 확인
+
+</details>
+
+<details>
+<summary>AI 댓글 예시</summary>
+
+**게시글 제목:** "FastAPI와 AI 통합"
+**게시글 내용:** "OpenRouter를 사용해서 무료로 LLM 모델을 서빙할 수 있습니다!"
+
+**AI가 생성한 댓글:**
+> "오 OpenRouter로 무료 LLM 서빙이 가능하다니 정말 유용한 정보네요! 실제 프로젝트에 어떻게 적용하셨는지 더 자세히 알려주실 수 있을까요?"
+
+**특징:**
+- 게시글 내용을 이해하고 관련된 댓글 작성
+- 자연스러운 한국어 표현
+- 토론을 유도하는 질문 포함
+- 긍정적이고 친근한 분위기
+
+</details>
+
+### 7-3. 기술 스택
+
+**AI 모델 서빙:**
+- **OpenRouter API**: 다양한 LLM 모델 통합 플랫폼
+- **모델**: `google/gemini-2.0-flash-exp:free`
+  - Google Gemini 2.0 Flash (무료 버전)
+  - 빠른 응답 속도 (2-5초)
+  - 한국어 지원 우수
+  - 무료 크레딧 제공
+
+**비동기 처리:**
+- **FastAPI BackgroundTasks**: 백그라운드 작업 관리
+- **httpx**: 비동기 HTTP 클라이언트
+- **asyncio**: Python 비동기 I/O
+
+**아키텍처:**
+```
+[게시글 생성 요청]
+       ↓
+[PostController] → 게시글 DB 저장
+       ↓
+[201 Created 응답] ← 즉시 반환
+       ↓
+[BackgroundTask] → AI 댓글 생성 (비동기)
+       ↓
+[AICommentService] → OpenRouter API 호출
+       ↓
+[CommentController] → AI 댓글 DB 저장
+```
+
+**환경 설정:**
+- `.env`: 환경변수 관리
+- `setup.sh`: 자동 설정 스크립트
+- `pyproject.toml`: 의존성 관리 (httpx 추가)
+
+**에러 처리:**
+- API 토큰 없음 → fallback 메시지
+- API 호출 실패 → fallback 메시지
+- 타임아웃 (30초) → fallback 메시지
+- 생성된 댓글 검증 → 최소 길이 확인
+
+
+
+
+
+---
+
+
+
+
 ## 다음 단계
+- [x] AI 모델 서빙 (OpenRouter)
 - [ ] 비밀번호 해싱 (bcrypt)
 - [ ] 인증/인가 (JWT Token)
 - [ ] 페이지네이션 구현

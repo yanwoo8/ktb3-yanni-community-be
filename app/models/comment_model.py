@@ -18,7 +18,7 @@ Comment Model (Database Repository)
 
 from typing import Optional
 from sqlalchemy.orm import Session
-from app.db_models import Comment
+from app.databases.db_models import Comment
 
 
 class CommentModel:

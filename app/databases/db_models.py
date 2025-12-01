@@ -21,7 +21,7 @@ ORM Database Models
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from app.database import Base
+from app.databases import Base
 
 
 # ==================== Association Table (다대다 관계) ====================
