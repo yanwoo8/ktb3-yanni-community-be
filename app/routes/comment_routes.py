@@ -14,18 +14,25 @@ Comment Routes (Database Version)
 
 Endpoints:
 - POST /comments: 댓글 생성
-- GET /comments/post/{post_id}: 특정 게시글의 댓글 목록 조회
 - GET /comments/{comment_id}: 특정 댓글 조회
 - PUT /comments/{comment_id}: 댓글 수정
 - DELETE /comments/{comment_id}: 댓글 삭제
 """
 
+<<<<<<< HEAD
+from typing import Dict
+=======
 from typing import Dict, List
+>>>>>>> origin/main
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
+<<<<<<< HEAD
+from app.databases import get_db
+=======
 from app.database import get_db
+>>>>>>> origin/main
 from app.models.comment_model import CommentModel
 from app.models.user_model import UserModel
 from app.models.post_model import PostModel
@@ -110,6 +117,8 @@ def create_comment(
 
 # ==================== READ ====================
 
+<<<<<<< HEAD
+=======
 @router.get("/post/{post_id}", status_code=200)
 def get_comments_by_post(
     post_id: int,
@@ -146,6 +155,7 @@ def get_comments_by_post(
         raise HTTPException(status_code=500, detail="댓글 조회 중 오류가 발생했습니다")
 
 
+>>>>>>> origin/main
 @router.get("/{comment_id}", status_code=200)
 def get_comment(
     comment_id: int,

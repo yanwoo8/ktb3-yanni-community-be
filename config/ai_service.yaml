@@ -1,0 +1,82 @@
+# AI Service Configuration
+# AI 댓글 생성 서비스 설정 파일
+
+# OpenRouter API 설정
+openrouter:
+  api_url: "https://openrouter.ai/api/v1/chat/completions"
+
+  # HTTP 요청 헤더 설정
+  headers:
+    http_referer: "https://github.com/yanwoo8/ktb3-yanni-community-be"
+    x_title: "Community Backend AI Comment"
+
+  # API 타임아웃 (초)
+  timeout: 30.0
+
+# LLM 모델 설정
+models:
+  # 현재 사용 중인 모델
+  current: "qwen3-coder"  # 2025년 12월 기준 동작 확인됨
+
+  # 사용 가능한 무료 모델 목록
+  # 2025년 12월 기준 OpenRouter 무료 모델
+  available:
+    # 주의: 무료 모델은 빈번한 rate limit 발생
+    # 상용 환경에서는 유료 API 키 사용 권장
+
+    qwen3-coder:
+      id: "qwen/qwen3-coder:free"
+      description: "Qwen3 Coder 480B A35B (무료)"
+      pros: "한국어 지원 우수, 안정적"
+      cons: "코더 특화 모델이지만 일반 텍스트도 처리 가능"
+      recommended: true
+
+    nvidia-nemotron:
+      id: "nvidia/nemotron-nano-9b-v2:free"
+      description: "NVIDIA Nemotron Nano 9B V2 (무료)"
+      pros: "빠른 응답"
+      cons: "한국어 품질이 낮음"
+      recommended: false
+
+    glm-4.5:
+      id: "z-ai/glm-4.5-air:free"
+      description: "Z.AI GLM 4.5 Air (무료)"
+      pros: "중국 모델, 다국어 지원"
+      cons: "빈 응답 발생 가능"
+      recommended: false
+
+# 프롬프트 설정
+prompt:
+  system_message: "당신은 요약 전문가입니다. 게시글 내용을 분석하여 요약한 내용을 작성합니다."
+
+  user_message_template: |
+    다음 게시글의 내용을 2~3문장의 한국어로 요약해주세요.
+
+    게시글 제목: {title}
+    게시글 내용: {content}
+
+    댓글 작성 가이드:
+    1. 주제에 대한 진심 어린 관심 표현
+    2. 토론을 유도하는 질문 또는 의견
+    3. 친근하고 환영하는 분위기
+
+    댓글:
+
+  # 내용 미리보기 최대 길이 (토큰 절약)
+  content_preview_length: 300
+
+# API 파라미터 설정
+api_parameters:
+  temperature: 0.7      # 창의성 (0.0 ~ 1.0, 높을수록 창의적)
+  max_tokens: 150       # 최대 토큰 수
+  top_p: 0.9            # 다양성 (0.0 ~ 1.0)
+
+# Fallback 설정
+fallback:
+  message: "AI 댓글 생성에 실패했습니다. 나중에 다시 시도해주세요."
+  min_comment_length: 5  # 최소 댓글 길이 (이보다 짧으면 fallback 사용)
+
+# 로깅 설정
+logging:
+  enabled: true
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR

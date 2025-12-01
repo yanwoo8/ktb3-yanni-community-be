@@ -26,7 +26,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
+<<<<<<< HEAD
+from app.databases import get_db
+=======
 from app.database import get_db
+>>>>>>> origin/main
 from app.models.user_model import UserModel
 from app.controllers.user_controller import UserController
 from app.schemas.auth_schema import UserRegister, UserLogin, NicknameUpdate

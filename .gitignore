@@ -2,12 +2,9 @@
 __pycache__/
 .DS_Store
 subject.md
-keep/2.py
-keep/3.py
-keep/4.py
-keep/5.py
-keep/5.sql
 keep/6.py
 keep/7.py
 keep/8.py
 static/
+.env
+community.db

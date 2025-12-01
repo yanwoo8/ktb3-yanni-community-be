@@ -1,7 +1,9 @@
 """
 Post Model (Database Repository)
+Post Model (Database Repository)
 
 역할:
+1. 데이터 접근 계층: 게시글 데이터베이스와의 상호작용
 1. 데이터 접근 계층: 게시글 데이터베이스와의 상호작용
 2. CRUD 연산: 게시글 생성, 조회, 수정, 삭제
 3. 관계 데이터 관리: 좋아요, 조회수, 댓글 수 추적
@@ -14,12 +16,17 @@ Post Model (Database Repository)
 변경사항:
 - In-memory List[Dict] → SQLAlchemy ORM (SQLite)
 - 좋아요: dict 추적 → post_likes 테이블 (다대다 관계)
+- 의존성 주입: SQLAlchemy Session 주입
+
+변경사항:
+- In-memory List[Dict] → SQLAlchemy ORM (SQLite)
+- 좋아요: dict 추적 → post_likes 테이블 (다대다 관계)
 """
 
-from typing import Optional
+from typing import Optional, cast
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from app.db_models import Post, User
+from app.databases.db_models import Post, User
 
 
 class PostModel:
@@ -28,11 +35,13 @@ class PostModel:
 
     Attributes:
     - db (Session): SQLAlchemy 세션
+    - db (Session): SQLAlchemy 세션
 
     Methods:
     - create: 게시글 생성
     - find_by_id: ID로 게시글 조회
     - find_all: 전체 게시글 조회
+    - find_by_author: 작성자별 게시글 조회
     - find_by_author: 작성자별 게시글 조회
     - update: 게시글 수정
     - delete: 게시글 삭제
@@ -42,6 +51,14 @@ class PostModel:
     - is_liked_by_user: 사용자의 좋아요 여부 확인
     """
 
+    def __init__(self, db: Session):
+        """
+        Model 초기화
+
+        Args:
+        - db (Session): SQLAlchemy 세션 (의존성 주입)
+        """
+        self.db = db
     def __init__(self, db: Session):
         """
         Model 초기화
@@ -67,10 +84,21 @@ class PostModel:
 
         Returns:
         - Post: 생성된 게시글 ORM 객체
+        - Post: 생성된 게시글 ORM 객체
 
         Note:
         - author_nickname, author_profile_image는 relationship을 통해 자동 조회
+        - author_nickname, author_profile_image는 relationship을 통해 자동 조회
         """
+        new_post = Post(
+            title=title,
+            content=content,
+            image_url=image_url,
+            author_id=author_id
+        )
+        self.db.add(new_post)
+        self.db.commit()
+        self.db.refresh(new_post)
         new_post = Post(
             title=title,
             content=content,
@@ -85,6 +113,7 @@ class PostModel:
 
     # ==================== READ ====================
 
+    def find_by_id(self, post_id: int) -> Optional[Post]:
     def find_by_id(self, post_id: int) -> Optional[Post]:
         """
         ID로 게시글 조회
@@ -160,11 +189,15 @@ class PostModel:
         Returns:
         - bool: 성공 여부
         """
-        post = self.find_by_id(post_id)
-        if not post:
+
+        # Perform an atomic increment using a DB-side UPDATE to avoid assigning to
+        # a ColumnElement[int] (typing/runtime issues) and to be safe in concurrent scenarios.
+        updated = self.db.query(Post).filter(Post.id == post_id).update(
+            {Post.views: Post.views + 1}, synchronize_session=False
+        )
+        if not updated:
             return False
 
-        post.views += 1
         self.db.commit()
         return True
 
@@ -258,7 +291,8 @@ class PostModel:
         - list[int]: 삭제된 게시글 ID 목록
         """
         posts = self.find_by_author(author_id)
-        deleted_ids = [post.id for post in posts]
+        # Ensure we return plain ints (not SQLAlchemy Column objects) to satisfy typing
+        deleted_ids = [int(cast(int, post.id)) for post in posts]
 
         for post in posts:
             self.db.delete(post)

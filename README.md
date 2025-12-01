@@ -47,6 +47,11 @@
 - [6-2. 결과](#6-2-결과)
 - [6-3. 문제 및 해결](#6-3-문제-및-해결)
 
+[7. AI 모델 서빙 - 자동 댓글 생성](#7-ai-모델-서빙---자동-댓글-생성)
+- [7-1. 설명](#7-1-설명)
+- [7-2. 결과](#7-2-결과)
+- [7-3. 문제 및 해결](#7-3-문제-및-해결)
+
 
 ---
 
@@ -893,6 +898,177 @@ curl -X GET http://localhost:8000/dev/status
 - CASCADE DELETE로 참조 무결성 자동 관리
 
 
+
+
+
+---
+
+
+
+
+## 7. AI 모델 서빙 - 자동 댓글 생성
+
+### 7-1. 설명
+
+**branch name:** `feature/ai-comment`
+**구현 내용:**
+1. OpenRouter API를 활용한 LLM 모델 서빙
+- `app/services/ai_comment_service.py`: AI 댓글 생성 서비스
+- 무료 모델 사용: `google/gemini-2.0-flash-exp:free`
+- 비동기 HTTP 통신: httpx
+
+2. 백그라운드 작업으로 자동 댓글 추가
+- `app/routes/post_routes.py`: 게시글 생성 시 BackgroundTasks 활용
+- 게시글 생성 응답과 독립적으로 AI 댓글 생성
+- 실패 시 fallback 메시지 사용
+
+3. 환경 설정 자동화
+- `setup.sh`: 로컬 환경 자동 설정 스크립트
+- `.env` 파일 생성 및 API 키 설정 안내
+- 의존성 패키지 자동 설치
+
+4. AI 설정을 중앙 관리 가능하게끔 함
+- `config/ai_service.yaml`: 설정 파일
+- `app/utils/config_loader.py`: 설정 로드 메소드
+
+5. 포인트
+- OpenRouter API 활용한 AI/LLM 모델 서빙
+- 에러 핸들링: API 실패 시 fallback 메시지 반환
+- httpx: 비동기
+
+
+**환경 설정:**
+- `.env`: 환경변수 관리
+- `setup.sh`: 자동 설정 스크립트
+- `pyproject.toml`: 의존성 관리 (httpx 추가)
+
+
+**검증:** 게시글 생성 후 자동으로 AI 댓글이 추가되는지 확인
+
+### 7-2. 결과
+
+<details>
+<summary>빠른 시작 (자동 설정)</summary>
+
+```sh
+# 1. 설정 스크립트 실행
+chmod +x setup.sh
+./setup.sh
+
+# 2. .env 파일에서 OpenRouter API 키 설정
+# OPENROUTER_API_KEY=your_api_key_here
+
+# 3. 서버 실행
+uvicorn app.main:app --reload
+```
+
+**OpenRouter API 키 발급:**
+1. https://openrouter.ai/keys 접속
+2. 무료 계정 생성
+3. API 키 발급 (무료 크레딧 제공)
+4. `.env` 파일에 키 입력
+
+</details>
+
+<details>
+<summary>AI 댓글 테스트</summary>
+
+```sh
+# 1. 회원가입
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"ai@test.com","password":"Test1234!","password_confirm":"Test1234!","nickname":"사용자","profile_image":"https://example.com/ai.jpg"}'
+
+# 2. 게시글 작성 (AI 댓글 자동 생성!)
+curl -X POST http://localhost:8000/posts \
+  -H "Content-Type: application/json" \
+  -d '{"title":"FastAPI와 AI 통합","content":"OpenRouter를 사용해서 무료로 LLM 모델을 서빙할 수 있습니다!","author_id":1}'
+
+# 3. 게시글 조회 (AI 댓글 확인)
+curl -X GET http://localhost:8000/posts/1
+
+# 4. 댓글 목록 조회
+curl -X GET http://localhost:8000/posts/1/comments
+```
+
+**예상 결과:**
+- 게시글 생성 즉시 201 응답 반환
+- 백그라운드에서 AI 댓글 생성 (2-5초 소요)
+- 댓글 목록 조회 시 AI가 작성한 첫 댓글 확인
+
+</details>
+
+### 7-3. 문제 및 해결
+
+<details>
+<summary>1. OpenRouter API 연결 안됨</summary>
+
+**문제 상황:** AI 댓글이 생성되지 않고 fallback 메시지만 저장됨.
+
+**원인:**
+
+- ✅ `.env` 파일에 OpenRouter API 키 존재
+- ✅ OpenRouter API 직접 호출은 성공
+- ❌ FastAPI 애플리케이션 내에서 환경변수 로드 실패
+> FastAPI 애플리케이션이 시작될 때 `python-dotenv`로 환경변수를 로드해야 하는데, 이 과정이 빠져있어서 `os.getenv("OPENROUTER_API_KEY")`가 `None`을 반환하고 있었음.
+
+**해결:**
+1. 디버깅1: `app/services/ai_comment_service.py`에 디버깅용 로그 추가
+    - API 토큰 확인 로그
+    - API 호출 단계별 로그
+    - 에러 상세 로그
+
+2. 디버깅2: 테스트코드 생성
+    - `test_ai_comment.sh`: AI 댓글 생성 전체 플로우 테스트
+    - `test_openrouter_api.py`: OpenRouter API python으로 직접 테스트
+
+2. 수정: `app/main.py`
+    ```
+    from dotenv import load_dotenv
+    load_dotenv()
+    ```
+</details>
+
+
+<details>
+<summary>2. Rate Limit 문제</summary>
+
+**문제 상황:**
+```
+상태 코드: 429 (Too Many Requests)
+에러: "google/gemini-2.0-flash-exp:free is temporarily rate-limited upstream"
+```
+
+**원인:**
+- OpenRouter의 **무료 Gemini 2.0 Flash 모델**을 사용했으나 Google upstream에서 일시적으로 **rate limit**에 걸림.
+
+**해결:** Meta의 Llama 3.2 모델로 변경
+- 파일: `app/services/ai_comment_service.py`
+```python
+# Before
+self.model = "google/gemini-2.0-flash-exp:free"
+
+# After
+self.model = "meta-llama/llama-3.2-3b-instruct:free"
+```
+- 이후 Model을 바꾸는 시간을 단축하기 위해 YAML 파일로 세팅 관리 (`ai_service.yaml`, `config_loader.py`)
+
+**이후에도 이 문제가 재발할 시:**
+
+1. **즉시 해결 (모델 변경)**
+    1. `app/services/ai_comment_service.py` 열기
+    2. `self.model` 값을 위 목록에서 다른 모델로 변경
+    3. 서버 재시작
+
+2. **장기적 해결 (유료 플랜)**
+    - OpenRouter에서 크레딧을 충전하면:
+    - Rate limit 없음
+    - 더 빠른 모델 사용 가능
+    - GPT-4, Claude 등 프리미엄 모델 사용 가능
+
+**이후 추가가 필요한 기능:**  
+Rate Limit으로 AI 요약 기능이 수행되지 않았을 경우, 이 State를 기억해뒀다가, 일정 시간 이후 재시도하는 기능
+</details>
 
 
 
