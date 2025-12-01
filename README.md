@@ -935,6 +935,7 @@ curl -X GET http://localhost:8000/dev/status
 - OpenRouter API 활용한 AI/LLM 모델 서빙
 - 에러 핸들링: API 실패 시 fallback 메시지 반환
 - httpx: 비동기
+- BackgroundTasks 사용하여 백그라운드에서 실행
 
 
 **환경 설정:**

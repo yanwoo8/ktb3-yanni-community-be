@@ -16,10 +16,7 @@ Endpoints:
 - POST /posts: 게시글 생성
 - GET /posts: 전체 게시글 조회
 - GET /posts/{post_id}: 특정 게시글 조회
-<<<<<<< HEAD
 - GET /posts/{post_id}/comments: 특정 게시글의 댓글 목록 조회
-=======
->>>>>>> origin/main
 - PUT /posts/{post_id}: 게시글 전체 수정
 - PATCH /posts/{post_id}: 게시글 부분 수정
 - DELETE /posts/{post_id}: 게시글 삭제
@@ -27,7 +24,6 @@ Endpoints:
 """
 
 from typing import Dict
-<<<<<<< HEAD
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -43,19 +39,6 @@ from app.schemas.post_schema import PostCreate, PostPartialUpdate
 from app.services.ai_comment_service import get_ai_comment_service
 import logging
 import asyncio
-=======
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-
-from app.database import get_db
-from app.models.post_model import PostModel
-from app.models.user_model import UserModel
-from app.controllers.post_controller import PostController
-from app.controllers.user_controller import UserController
-from app.schemas.post_schema import PostCreate, PostPartialUpdate
-import logging
->>>>>>> origin/main
 
 
 # ==================== Router Setup ====================
@@ -85,7 +68,6 @@ def get_post_controller(db: Session = Depends(get_db)) -> PostController:
     user_controller = UserController(user_model)
     return PostController(post_model, user_controller)
 
-<<<<<<< HEAD
 
 def get_comment_controller(db: Session = Depends(get_db)) -> CommentController:
     """
@@ -163,34 +145,24 @@ async def add_ai_comment_background(
         # 세션을 반드시 닫아서 리소스 누수 방지
         db.close()
 
-=======
->>>>>>> origin/main
 
 # ==================== CREATE ====================
 
 @router.post("", status_code=201)
 def create_post(
     post: PostCreate,
-<<<<<<< HEAD
     background_tasks: BackgroundTasks,
     controller: PostController = Depends(get_post_controller),
     db: Session = Depends(get_db)
-=======
-    controller: PostController = Depends(get_post_controller)
->>>>>>> origin/main
 ) -> Dict:
     """
     게시글 생성 엔드포인트 (POST /posts)
 
     Args:
     - post (PostCreate): 게시글 생성 요청 데이터
-<<<<<<< HEAD
     - background_tasks (BackgroundTasks): FastAPI 백그라운드 작업
     - controller (PostController): 의존성 주입된 컨트롤러
     - db (Session): 데이터베이스 세션
-=======
-    - controller (PostController): 의존성 주입된 컨트롤러
->>>>>>> origin/main
 
     Returns:
     - Dict: 생성 메시지 + 게시글 데이터
@@ -199,13 +171,10 @@ def create_post(
     - 201 Created: 생성 성공
     - 400 Bad Request: 작성자가 존재하지 않음
     - 500 Internal Server Error: 서버 오류
-<<<<<<< HEAD
 
     Note:
     - 게시글 생성 후 백그라운드에서 AI 댓글 자동 추가
     - AI 댓글 추가 실패는 사용자 응답에 영향 없음
-=======
->>>>>>> origin/main
     """
     try:
         result = controller.create(
@@ -306,7 +275,6 @@ def get_post_by_id(
     except Exception as e:
         logger.error(f"게시글 조회 실패 - post_id: {post_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="게시글 조회 중 오류가 발생했습니다")
-<<<<<<< HEAD
 
 
 @router.get("/{post_id}/comments", status_code=200)
@@ -343,8 +311,6 @@ def get_post_comments(
     except Exception as e:
         logger.error(f"댓글 목록 조회 실패 - post_id: {post_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="댓글 조회 중 오류가 발생했습니다")
-=======
->>>>>>> origin/main
 
 
 # ==================== UPDATE ====================
@@ -415,11 +381,22 @@ def partial_update_post(
     - 500 Internal Server Error: 서버 오류
     """
     try:
+        # Safely extract optional fields without assigning back to the Pydantic model
+        image_val = getattr(post, "image_url", None)
+        if hasattr(post, "image_url"):
+            # 간단한 유효성 검사: None(명시적 제거) 또는 문자열만 허용
+            if image_val is not None and not isinstance(image_val, str):
+                raise ValueError("image_url must be a string or null")
+            # image_val == None 의 경우 이미지 제거 의도로 전달
+
+        title_val = getattr(post, "title", None)
+        content_val = getattr(post, "content", None)
+     
         result = controller.partial_update(
             post_id,
-            title=post.title,
-            content=post.content,
-            image_url=post.image_url
+            title=title_val,
+            content=content_val,
+            image_url=image_val
         )
         return {"message": "Updated", "data": result}
 

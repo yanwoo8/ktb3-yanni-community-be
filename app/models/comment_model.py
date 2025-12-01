@@ -18,11 +18,7 @@ Comment Model (Database Repository)
 
 from typing import Optional
 from sqlalchemy.orm import Session
-<<<<<<< HEAD
 from app.databases.db_models import Comment
-=======
-from app.db_models import Comment
->>>>>>> origin/main
 
 
 class CommentModel:
@@ -141,8 +137,8 @@ class CommentModel:
         comment = self.find_by_id(comment_id)
         if not comment:
             return None
-
-        comment.content = content
+        
+        comment.content = content  # type: ignore[assignment]
         self.db.commit()
         self.db.refresh(comment)
         return comment
