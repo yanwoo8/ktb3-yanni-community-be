@@ -1,5 +1,54 @@
 > ❓: 더 공부해보고 추가할 것들
 
+~~1. README 1-2장 다시 읽기 (main.py 이해)~~
+2. routes/의 HTTP 메서드 전부 확인
+
+
+
+
+3. post_routes.py의 각 함수가 뭘 하는지 주석 읽기
+
+4. README 3-5장 읽기 (아키텍처 리팩토링)
+5. post_controller.py 함수 하나씩 이해
+6. 데이터 흐름 따라가보기 (Route → Controller → Model)
+
+7. README 6장 읽기 (SQLite + SQLAlchemy)
+8. db_models.py 테이블 구조 이해
+9. SQLite 데이터베이스 직접 열어보기 (community.db 파일)
+10. Pydantic을 깔고 있는 SQLModel 구조 공부
+
+11. README 7장 읽기 (AI 자동 댓글)
+12. ai_comment_service.py 코드 읽기
+
+13. 교재 보면서 FE 공부, 미니퀘스트 도장깨기
+
+1. 이해: 한 번에 다 이해하려고 하지 말기. 먼저 "이 파일이 뭘 하는지" 큰 그림만 파악하고, 세부 코드는 나중에
+2. 실행: 코드만 읽지 말고, 서버 돌려서 테스트해보기. 값을 바꿔보면서 어떻게 변하는지 관찰
+3. 질문: 특정 파일/함수가 이해 안 되면 물어보세요 - 예: "post_routes.py의 151번째 줄이 무슨 뜻이에요?"
+- 특정 파일 쉽게 설명해줘 (예: "post_routes.py를 줄 단위로 설명해줘")
+- 용어 설명해줘 (예: "의존성 주입이 뭐야?")
+- 실습 가이드 만들어줘 (예: "직접 따라할 수 있는 튜토리얼 만들어줘")
+- 핵심 코드만 추려줘 (예: "게시글 생성 기능만 보고 싶어")
+
+
+
+
+
+
+# Table of Contents
+1. [Basic](#basic)
+2. [HTTP](#http)
+3. [URL and Endpoint](#url-and-endpoint)
+4. [Architecture](#architecture)
+5. [DB](#db)
+6. [Security](#security)
+7. [FastAPI and Server Development](#fastapi-and-server-development)
+8. [Session and Cookie](#session-and-cookie)
+9. [Advanced Features](#advanced-features)
+10. [Model Serving](#model-serving)
+
+
+
 ## Basic
 
 - **Client 클라이언트**: 고객-요청자. Request-er
@@ -22,65 +71,58 @@ def get_users():
 user = User(name="Alice")  # 메모리에 User 객체 생성
 ```
 
-- **Business Logic 비즈니스 로직**: 실제 문제를 해결하는 핵심 규칙과 처리 (코드)
-    - 도메인 규칙 (게임 규칙, 은행 규칙 등)
-    - 핵심 계산 (추천 알고리즘, 요금 계산 등)
-    - 업무 흐름 (주문 → 결제 → 배송 등)
-
-    **≠ 기술 코드** (HTTP, 파싱, DB 연결 등)
-    - 비즈니스로직과 기술코드의 차이 : 이 코드가 없으면 다른 회사/서비스에서도 똑같이 쓸 수 있나?
-    ```
-    HTTP 통신 <- 기술 코드
-    JSON 파싱 <- 기술 코드
-    --- 비즈니스 로직 시작 ---
-    만약 A 이면 B를 반환한다.
-    만약 C 이면 C += D 한다.
-    핵심적인 계산 로직
-    --- 비즈니스 로직 끝 ---
-    JSON 반환 <- 기술 코드
-    HTTP 응답 <- 기술 코드
-    ```
-
-
-**Routes - Controller - Model 구조**: 3계층 분리 (한 파일에 다 쓰지 말고, 역할별로 분리하자)
-```
-[클라이언트]
-     ↓ HTTP 요청
-[Route] ← "GET /users로 요청이 왔네"
-     ↓ 함수 호출
-[Controller] ← "사용자 목록 가져오는 로직 실행"
-     ↓ 데이터 요청
-[Model] ← "데이터베이스에서 User 데이터 가져오기"
-     ↓ 데이터 반환
-[Database]
-```
-- **Route**: 
-    - URL 경로 정의
-    - HTTP 메서드 지정 (GET, POST 등)
-    - Controller 함수 호출
-    - 비즈니스 로직 없음! (단순 연결만)
-
-- **Controller**: 
-    - 비즈니스 로직 실행 (핵심!)
-    - 데이터 검증 (나이, 이름 등)
-    - Model 호출하여 데이터 가져오기
-    - 여러 Model 조합
-    - 예외 처리
-
-- **Model**:
-    - 데이터 구조 정의 (Pydantic 모델)
-    - 데이터베이스 CRUD (Create, Read, Update, Delete)
-    - 비즈니스 로직 없음! (단순 데이터 접근만)
 
 
 
 
 
-- ❓Domain-Driven Design (DDD)
-- ❓Clean Architecture
-- ❓계층화 아키텍처 (Layered Architecture)
-- ❓의존성 주입 (Dependency Injection)
-- ❓Service Layer Pattern
+
+<br>
+<br>
+
+
+
+
+
+
+
+
+## HTTP
+
+- **HTTP**: Hyper-Text Transfer Protocol. 하이퍼텍스트(일반적인 텍스트를 뛰어넘는 기능이 있는 구조화된 텍스트)를 전송하는 (통신)규약.
+
+- **HTTP Message 메시지**: 클라이언트-서버 간 통신 기본 단위.
+    - Request / Response
+    - 시작줄(start line): `{Method} {dir} {HTTP version}`
+    - 헤더(HTTP headers): Request / General / Representation
+    - 빈 줄(empty line): 헤더와 본문 구분
+    - 본문(body): JSON 데이터나 HTML 문서 등 실제 내용
+    
+
+- **Query string / Query Parameter / 쿼리 매개변수**: (웹페이지-클라이언트-에 대한) 추가 정보 전달 - `GET /posts?offset=0&limit=10`
+- **Path Variable / Path Parameter / 경로 매개변수**: 특정한 경로에 있는 특정 자원을 식별하는 변수 - `GET /posts/1`
+
+
+- **HTTP Request Method 요청 메서드**: HTTP 요청 방법. 서버에게 어떤 작업을 수행하길 원하는지 알리는 방법.
+    - **GET**: 데이터 조회 요청 (QS: 검색, 필터링, 정렬 등의 추가적 정보 / PV: 특정 위치의 데이터 요청)
+    - **POST**: 데이터 생성, 업데이트 요청 (QS: _ / PV: _ )
+    - **PUT**: 데이터 대체 / 전체 업데이트 (Replace) 요청 - 프로필 이미지 변경 등 (QS: _ / PV: _ )
+    - **PATCH**: 데이터 부분 업데이트 (Partial Update) 요청 - 비밀번호 변경 등 (QS: _ / PV: `PATCH /users/1`은 사용자 ID가 1인 사용자 정보의 일부 내용을 수정하는 PATCH 요청)
+    - **DELETE**: 데이터 삭제 요청 (QS: _ / PV: `DELETE /users/1`은 사용자 ID가 1인 사용자 정보를 삭제하는 DELETE 요청)
+
+
+- **HTTP Status Code 상태 코드**: HTTP 진행 상태 플래그(표시 코드)
+    - 1xx: 정보
+    - 2xx: 성공
+    - 3xx: 리다이렉션
+    - 4xx: 클라이언트 오류
+    - 5xx: 서버 오류
+
+- **HTTP URL**: Scheme + Domain + Port + Resource path + Parameters(QS & PV)
+
+
+
+
 
 
 
@@ -113,7 +155,8 @@ def get_users():    # 동시에 엔드포인트 "(GET /users) -> get_users()" �
     - 엔드포인트를 정의할 때 URL이 "정의"된다. "생성"이 아님. 프로그래머가 임의로 정의한다.
     - 기존에 다른 방법으로 생성된 것이 아니라, 프로그래머가 코드로 정의하는 순간 그 경로가 의미를 갖는다.
 
-- **Endpoint 엔드포인트**: 서버에 정의된 기능의 주소.
+
+- **Endpoint 엔드포인트: 서버에 정의된 기능의 주소.**
     - End + Point = 통신의 끝 지점. 클라이언트가 요청을 보낼 때, 그 요청이 도달하는 최종 지점이라는 의미.
     - **형태**: 서버에서 클라이언트가 요청을 보낼 주소 (URL 경로) + 그 주소를 처리하는 코드 (HTTP 메서드)의 조합.
     - 엔드포인트는 "주소+메서드 조합"이며, 이것이 핸들러 함수로 매핑된다.
@@ -123,8 +166,8 @@ def get_users():    # 동시에 엔드포인트 "(GET /users) -> get_users()" �
     - 정의하지 않으면 405 Error 발생.
     - 엔드포인트는 Request(요청)을 받아 처리(handler)하고 Response(status-code, header, body)을 반환함.
     - 라우팅 테이블에 딕셔너리 (해시 테이블) 형태로 저장된다.
-    - `(METHOD, URL): method_url_function()` 형태로 매핑된 해시 테이블의 한 요소.
-    - 라우터 테이블의 키(METHOD, URL)만 뜻하는 것인지, 함수까지 포함한 의미인지는 맥락에 따라 다르며 둘다 가능함.
+    - `(HTTP METHOD, URL): method_url_function()` 형태로 매핑된 해시 테이블의 한 요소.
+    - 라우터 테이블의 **키(HTTP METHOD, URL)**만 뜻하는 것인지, **함수(function method)**까지 포함한 의미인지는 맥락에 따라 다르며 둘다 가능함.
     - `@app.get("/")` -> 루트 엔드포인트: `GET /`, URL `/` 정의됨.
 
 
@@ -135,10 +178,11 @@ def get_users():    # 동시에 엔드포인트 "(GET /users) -> get_users()" �
 | 기술 논의 | 키만            | "이 엔드포인트에 매핑된 함수는..." |
 
 
-- **Routing 라우팅**: 어떤 함수를 실행할지 결정하는 과정
-    - Request 요청이 들어왔을 때, 이 요청을 키로 삼아 라우팅 테이블에서 매핑된 핸들러 함수를 찾아 호출한다.
+
+- **Routing 라우팅: 어떤 함수를 실행할지 결정하는 과정**
+    - Request 요청(HTTP Method + URL)이 들어왔을 때, 이 요청을 키로 삼아 라우팅 테이블에서 매핑된 핸들러 함수를 찾아 호출한다.
     - 라우팅 테이블은 서버 실행 시 메모리에 생성됨
-    1. **요청 분석**: `GET /users` 분해
+    1. **요청(키) 분석**: `GET /users` 분해
     2. **테이블 조회**: 해당하는 함수 찾기
     3. **함수 실행**: 찾은 함수 호출
     4. **응답 반환**: 결과를 HTTP 응답으로 변환
@@ -151,6 +195,7 @@ routing_table = {
     ("GET", "/posts/{post_id}"): get_post,  # 함수 참조
 }
 ```
+
 ```
 [RAM]
 ├── FastAPI 프로세스
@@ -165,6 +210,13 @@ routing_table = {
     - Endpoint 정의 시 URL의 일부를 변수로 받아 처리하도록 작성하는 것.
     - `@app.get("/users/{user_id}")`
 
+`from fastapi import APIRouter`:
+- 라우트 그룹화: 관련된 엔드포인트들을 하나의 모듈로 묶음
+- 공통 설정 적용: 모든 엔드포인트에 /posts prefix 자동 추가
+- API 문서화: tags=["posts"]로 Swagger UI에서 그룹화
+- 모듈화: main.py에서 app.include_router(router)로 등록
+- 사용법: route file에서 글로벌로 한 번만 생성하고 이후 모든 엔드포인트에서 재사용. 동일한 router 인스턴스에 여러 엔드포인트를 등록할 수 있음
+
 
 ### Endpoint vs. HTTP message
 
@@ -176,6 +228,7 @@ routing_table = {
 | Who   | 서버 개발자가 정의        | 클라이언트가 전송                 |
 | When  | 서버 실행 시 고정됨 (호출) | 클라이언트가 요청할 때마다 새로 생성됨 |
 | 비유   | 식당 메뉴판의 항목        | 손님이 주문한 주문서              |
+| EX    | `@app.get("/")`      | `GET /`                      |
 
 
 
@@ -191,36 +244,86 @@ routing_table = {
 
 
 
-## HTTP
+## Architecture
 
-- **HTTP**: Hyper-Text Transfer Protocol. 하이퍼텍스트(일반적인 텍스트를 뛰어넘는 기능이 있는 구조화된 텍스트)를 전송하는 (통신)규약.
 
-- **HTTP Message 메시지**: 클라이언트-서버 간 통신 기본 단위.
-    - Request / Response
-    - 시작줄(start line): `{Method} {dir} {HTTP version}`
-    - 헤더(HTTP headers): Request / General / Representation
-    - 빈 줄(empty line): 헤더와 본문 구분
-    - 본문(body): JSON 데이터나 HTML 문서 등 실제 내용
-    
-- **Query string / Query Parameter / 쿼리 매개변수**: (웹페이지-클라이언트-에 대한) 추가 정보 전달 - `GET /posts?offset=0&limit=10`
-- **Path Variable / Path Parameter / 경로 매개변수**: 특정한 경로에 있는 특정 자원을 식별하는 변수 - `GET /posts/1`
+- **Business Logic 비즈니스 로직**: 실제 문제를 해결하는 핵심 규칙과 처리 (코드)
+    - 도메인 규칙 (게임 규칙, 은행 규칙 등)
+    - 핵심 계산 (추천 알고리즘, 요금 계산 등)
+    - 업무 흐름 (주문 → 결제 → 배송 등)
 
-- **HTTP Request Method 요청 메서드**: HTTP 요청 방법. 서버에게 어떤 작업을 수행하길 원하는지 알리는 방법.
-    - **GET**: 데이터 조회 요청 (QS: 검색, 필터링, 정렬 등의 추가적 정보 / PV: 특정 위치의 데이터 요청)
-    - **POST**: 데이터 생성, 업데이트 요청 (QS: _ / PV: _ )
-    - **PUT**: 데이터 대체 / 전체 업데이트 (Replace) 요청 - 프로필 이미지 변경 등 (QS: _ / PV: _ )
-    - **PATCH**: 데이터 부분 업데이트 (Partial Update) 요청 - 비밀번호 변경 등 (QS: _ / PV: `PATCH /users/1`은 사용자 ID가 1인 사용자 정보의 일부 내용을 수정하는 PATCH 요청)
-    - **DELETE**: 데이터 삭제 요청 (QS: _ / PV: `DELETE /users/1`은 사용자 ID가 1인 사용자 정보를 삭제하는 DELETE 요청)
+    **≠ 기술 코드** (HTTP, 파싱, DB 연결 등)
+    - **비즈니스로직과 기술코드의 차이** : 이 코드를 다른 도메인/회사/서비스에서 가져다가 쓸 수 있나?
+        - Yes: 기술 코드
+        - No: 비즈니스 로직
 
-- **HTTP Status Code 상태 코드**: HTTP 진행 상태 플래그(표시 코드)
-    - 1xx: 정보
-    - 2xx: 성공
-    - 3xx: 리다이렉션
-    - 4xx: 클라이언트 오류
-    - 5xx: 서버 오류
+    ```
+    HTTP 통신 <- 기술 코드
+    JSON 파싱 <- 기술 코드
+    --- 비즈니스 로직 시작 ---
+    만약 A 이면 B를 반환한다.
+    만약 C 이면 C += D 한다.
+    핵심적인 계산 로직
+    --- 비즈니스 로직 끝 ---
+    JSON 반환 <- 기술 코드
+    HTTP 응답 <- 기술 코드
+    ```
 
-- **HTTP URL**: Scheme + Domain + Port + Resource path + Parameters(QS & PV)
 
+**Routes - Controller - Model 구조**: 3계층 분리 (한 파일에 다 쓰지 말고, 역할별로 분리하자)
+```
+[클라이언트]
+     ↓ HTTP 요청
+[Route] ← "GET /users로 요청이 왔네"
+     ↓ 함수 호출
+[Controller] ← "사용자 목록 가져오는 로직 실행"
+     ↓ 데이터 요청
+[Model] ← "데이터베이스에서 User 데이터 가져오기"
+     ↓ 데이터 반환
+[Database]
+```
+- **Route: HTTP 요청/응답 처리 (엔드포인트 정의 및 함수 호출)**
+    - URL 경로 정의
+    - HTTP 메서드 지정 (GET, POST 등)
+    - Controller 함수 호출
+    - 비즈니스 로직 없음! (단순 연결만)
+    - **식당 예시: 웨이터 (주문을 받고, 음식을 서빙)**
+
+- **Controller: 비즈니스 로직 수행**
+    - 비즈니스 로직 실행 (핵심!)
+    - 데이터 검증 (나이, 이름 등) & 예외 처리
+    - Model 호출하여 데이터 가져오기
+    - **식당 예시: 셰프 (요리)**
+
+- **Model: 데이터베이스 접근**
+    - 데이터 구조 정의 (Pydantic 모델)
+    - 데이터베이스 CRUD (Create, Read, Update, Delete)
+    - 비즈니스 로직 없음! (단순 데이터 접근만)
+    - **식당 예시: 창고 관리자 (재료 가져오기)**
+
+
+- **Dependency Injection 의존성 주입**
+    - A가 동작하기 위해 B가 필요할 때, A는 B에 의존한다
+    - fastapi: `Depends()` 함수를 통해 의존성을 선언
+    - `Afunction(param = Depends(Bfunction))` == A는 B를 필요로 한다.
+    - 이러면 fastapi가 알아서 B를 먼저 수행할 수 있도록 보장해줌
+
+
+
+
+
+
+
+- ❓관심사의 분리 (SoC) 개념
+- ❓계층화 아키텍처 (Layered Architecture)
+- ❓MVC 패턴 (Model-View-Controller)
+
+- ❓Domain-Driven Design (DDD)
+- ❓Clean Architecture
+- ❓Service Layer Pattern
+
+- ❓Model Config
+- ❓Model Inheritance
 
 
 
@@ -236,6 +339,7 @@ routing_table = {
 
 
 ## DB
+
 - **DB (Database 데이터베이스)**: 자료를 정보로써 활용하기 위해 구조화해놓은 데이터 모음.
 - **RDB (RelationalDB 관계형 데이터베이스)**: 자료를 정보로 활용하기 위해서 테이블 형태로 관계를 맺어 놓은 데이터 모음
 - **SQL (Structured Query Language)**: DB 시스템에서 자료를 처리하기 위해 사용하는 구조화된 쿼리 언어
@@ -243,6 +347,11 @@ routing_table = {
 - **DML 데이터 조작어**: 데이터 조회/추가/수정/삭제/정렬/그룹/...
 - **DCL 데이터 제어어**: 사용자에게 권한 부여/취소
 - `JOIN`/`VIEW`/`UNION`
+
+- ❓SQLite
+- ❓ORM이란? (Object-Relational Mapping)
+- ❓SQLAlchemy 기초
+- ❓관계(Relationship) 이해 (1:N, N:M)
 
 
 
@@ -399,6 +508,7 @@ FastAPI 파싱:
         ```
         func = deco(func)
         ```
+
     1. HTTP 메서드 데코레이터 (8개)<br>
         > `@app.get(), @app.post(), @app.put(), @app.delete(), @app.patch(), @app.options(), @app.head(), @app.trace()`
     2. 이벤트 핸들러 데코레이터: `@app.on_event()`
@@ -406,6 +516,7 @@ FastAPI 파싱:
     4. 예외 핸들러 데코레이터: `@app.exception_handler()`
     5. WebSocket 데코레이터; `@app.websocket()`
     6. 의존성 데코레이터 (FastAPI 전용 유틸리티): `Depends()` (데코레이터처럼 사용되지만 함수)
+
 
 
 |     개념      | C++ (컴파일/링크) | FastAPI (웹 서버)         |
@@ -483,6 +594,7 @@ FastAPI 파싱:
     - 컴퓨터 프로세스들 사이에서, 서로를 인식한 후 데이터 송수신을 마칠 때까지의 기간.
     - 사용자별 고유 식별자(세션ID)를 생성해 사용자의 정보를 저장하고, 브라우저는 이 세션ID를 사용해서 서버와 통신.
     - 세션과 관련된 정보를, 쿠키를 이용해 유저의 컴퓨터에 작은 파일로 저장을 해두고, 쿠키에 있는 세션 정보를 가지고 서버에 접근하는 방식.
+
 - **Cookie 쿠키**:
     - 서버에서 사용자의 컴퓨터(브라우저)에 설치되는 작은 기록 정보 (텍스트) 파일.
     - 웹사이트의 방문 정보를 기억해서 개인화 서비스를 제공하려는 목적으로 사용됨.
@@ -604,22 +716,19 @@ FastAPI 파싱:
 
 
 
-
+- ❓이벤트/예외 핸들러
 - ❓미들웨어(Middleware)
     - ❓타임아웃 미들웨어
     - ❓rate-limit 미들웨어
     - ❓CORSMiddleware
-
-- ❓dot.env
-
 - ❓CORS
 
 
+
+
 - ❓Custom Validators
-- ❓Model Config
 - ❓Field Validators
 - ❓Root Validators
-- ❓Model Inheritance
 - ❓Nested Models
 - ❓Union Types
 - ❓Type Checking vs Runtime Validation
@@ -630,5 +739,24 @@ FastAPI 파싱:
 
 
 
+
+
+
+
+<br>
+<br>
+
+
+
+
+
+
 ## Model Serving
 - ❓OpenRouter
+- ❓비동기 프로그래밍 (async/await)
+- ❓BackgroundTasks (백그라운드 작업)
+- ❓외부 API 호출 (OpenRouter)
+- ❓환경변수 관리 (.env 파일)
+- ❓dot.env
+
+- ❓WebSocket

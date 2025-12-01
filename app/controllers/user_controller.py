@@ -132,7 +132,11 @@ class UserController:
         user = self.user_model.find_by_email(email)
 
         # 사용자가 없거나 비밀번호가 틀린 경우
-        if not user or user.password != password:
+        if user is None:
+            raise ValueError("*아이디 또는 비밀번호를 확인해주세요")
+
+        # 비교 시 SQLAlchemy ColumnElement가 나올 수 있으므로 문자열로 변환하여 비교
+        if str(getattr(user, "password", None)) != password:
             raise ValueError("*아이디 또는 비밀번호를 확인해주세요")
 
         # 로그인 성공: 비밀번호를 제외한 사용자 정보 반환
@@ -193,22 +197,26 @@ class UserController:
             raise ValueError("사용자를 찾을 수 없습니다")
 
         # 현재 닉네임과 동일한 경우는 허용
-        if user.nickname == new_nickname:
+        if str(getattr(user, "nickname", None)) == new_nickname:
             return {
                 "id": user.id,
                 "email": user.email,
                 "nickname": user.nickname,
                 "profile_image": user.profile_image
             }
-
+        
         # 닉네임 중복 확인 (다른 사용자와 중복)
         existing_user = self.user_model.find_by_nickname(new_nickname)
-        if existing_user and existing_user.id != user_id:
+        # Avoid evaluating SQL expression truthiness (ColumnElement) which raises; check for None explicitly
+        if existing_user is not None and getattr(existing_user, "id", None) != user_id:
             raise ValueError("*중복된 닉네임 입니다.")
 
         # 닉네임 업데이트 (Model에 위임)
         updated_user = self.user_model.update(user_id, nickname=new_nickname)
 
+        if not updated_user:
+            updated_user = user  # Fallback to original user if update failed for some reason
+            
         return {
             "id": updated_user.id,
             "email": updated_user.email,
