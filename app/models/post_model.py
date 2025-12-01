@@ -16,7 +16,7 @@ Post Model (Database Repository)
 - 좋아요: dict 추적 → post_likes 테이블 (다대다 관계)
 """
 
-from typing import Optional
+from typing import Optional, cast
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from app.databases.db_models import Post, User
@@ -160,11 +160,15 @@ class PostModel:
         Returns:
         - bool: 성공 여부
         """
-        post = self.find_by_id(post_id)
-        if not post:
+
+        # Perform an atomic increment using a DB-side UPDATE to avoid assigning to
+        # a ColumnElement[int] (typing/runtime issues) and to be safe in concurrent scenarios.
+        updated = self.db.query(Post).filter(Post.id == post_id).update(
+            {Post.views: Post.views + 1}, synchronize_session=False
+        )
+        if not updated:
             return False
 
-        post.views += 1
         self.db.commit()
         return True
 
@@ -258,7 +262,8 @@ class PostModel:
         - list[int]: 삭제된 게시글 ID 목록
         """
         posts = self.find_by_author(author_id)
-        deleted_ids = [post.id for post in posts]
+        # Ensure we return plain ints (not SQLAlchemy Column objects) to satisfy typing
+        deleted_ids = [int(cast(int, post.id)) for post in posts]
 
         for post in posts:
             self.db.delete(post)

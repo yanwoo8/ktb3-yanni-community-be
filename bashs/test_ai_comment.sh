@@ -50,8 +50,8 @@ POST_ID=$(echo "$POST_RESPONSE" | python3 -c 'import sys, json; data=json.load(s
 echo "생성된 게시글 ID: $POST_ID"
 echo ""
 
-echo "4. AI 댓글 생성 대기 (5초)..."
-sleep 5
+echo "4. AI 댓글 생성 대기 (10초)..."
+sleep 10
 echo ""
 
 echo "5. 게시글 댓글 목록 조회..."

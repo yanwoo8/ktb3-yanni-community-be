@@ -927,26 +927,15 @@ curl -X GET http://localhost:8000/dev/status
 - `.env` 파일 생성 및 API 키 설정 안내
 - 의존성 패키지 자동 설치
 
-4. 포인트
+4. AI 설정을 중앙 관리 가능하게끔 함
+- `config/ai_service.yaml`: 설정 파일
+- `app/utils/config_loader.py`: 설정 로드 메소드
+
+5. 포인트
 - OpenRouter API 활용한 AI/LLM 모델 서빙
-- 비동기 처리: asyncio (Python 비동기 I/O), FastAPI BackgroundTasks 활용한 백그라운드 작업 관리를 통해 게시글 생성 성능에 영향 없음
 - 에러 핸들링: API 실패 시 fallback 메시지 반환
 - httpx: 비동기
 
-**아키텍처:**
-```
-[게시글 생성 요청]
-       ↓
-[PostController] → 게시글 DB 저장
-       ↓
-[201 Created 응답] ← 즉시 반환
-       ↓
-[BackgroundTask] → AI 댓글 생성 (비동기)
-       ↓
-[AICommentService] → OpenRouter API 호출
-       ↓
-[CommentController] → AI 댓글 DB 저장
-```
 
 **환경 설정:**
 - `.env`: 환경변수 관리
@@ -1062,6 +1051,7 @@ self.model = "google/gemini-2.0-flash-exp:free"
 # After
 self.model = "meta-llama/llama-3.2-3b-instruct:free"
 ```
+- 이후 Model을 바꾸는 시간을 단축하기 위해 YAML 파일로 세팅 관리 (`ai_service.yaml`, `config_loader.py`)
 
 **이후에도 이 문제가 재발할 시:**
 

@@ -28,6 +28,10 @@ dependencies = [
     "sqlalchemy>=2.0.0",         # ORM (Object-Relational Mapping)
     "alembic>=1.12.0",           # Database migration tool
 
+    # Configuration
+    "python-dotenv>=1.0.0",      # Environment variable management
+    "pyyaml>=6.0.0",             # YAML configuration file parser
+
     # AI & LLM
     "httpx>=0.25.0"              # Async HTTP client for API calls (OpenRouter)
 ]

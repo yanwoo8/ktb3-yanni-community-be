@@ -8,8 +8,11 @@ AI Comment Service
 
 기술 스택:
 - OpenRouter API (무료 모델 제공)
-- 모델: google/gemini-2.0-flash-exp:free (빠르고 성능 좋은 무료 모델)
 - 비동기 HTTP 클라이언트: httpx
+- 모델:
+    * google/gemini-2.0-flash-exp:free
+    * meta-llama/llama-3.2-3b-instruct:free
+
 
 설계:
 - 백그라운드 작업: 게시글 생성 후 비동기로 AI 댓글 추가
@@ -19,9 +22,14 @@ AI Comment Service
 
 import os
 import httpx
-import asyncio
 from typing import Optional
 import logging
+from app.utils.config_loader import (
+    get_cached_ai_service_config,
+    get_current_model_config,
+    get_api_parameters,
+    get_prompt_config
+)
 
 # 로깅 설정
 logger = logging.getLogger(__name__)
@@ -50,29 +58,43 @@ class AICommentService:
         Args:
         - api_token: OpenRouter API 토큰 (환경변수 또는 직접 입력)
         """
+        # API 토큰 설정
         self.api_token = api_token or os.getenv("OPENROUTER_API_KEY", "")
 
+        # YAML 설정 파일 로드
+        self.config = get_cached_ai_service_config()
+
         # OpenRouter API 설정
-        self.api_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.api_url = self.config['openrouter']['api_url']
 
-        # 무료 모델 옵션 (rate limit 발생 시 다른 모델로 변경)
-        # 1. google/gemini-2.0-flash-exp:free - 빠르지만 rate limit 가능
-        # 2. meta-llama/llama-3.2-3b-instruct:free - 안정적
-        # 3. google/gemini-flash-1.5:free - 안정적인 Gemini 구버전
-        self.model = "meta-llama/llama-3.2-3b-instruct:free"
+        # 현재 모델 설정 로드
+        model_config = get_current_model_config(self.config)
+        self.model = model_config['id']
+        self.model_name = model_config['name']
 
+        logger.info(f"AI 서비스 초기화 - 모델: {self.model_name} ({self.model})")
+
+        # HTTP 헤더 설정
+        headers_config = self.config['openrouter']['headers']
         self.headers = {
             "Authorization": f"Bearer {self.api_token}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/yanwoo8/ktb3-yanni-community-be",  # OpenRouter 요구사항
-            "X-Title": "Community Backend AI Comment"  # OpenRouter 요구사항
+            "HTTP-Referer": headers_config['http_referer'],
+            "X-Title": headers_config['x_title']
         }
 
-        # API 타임아웃 설정 (30초)
-        self.timeout = 30.0
+        # API 파라미터 설정
+        self.api_params = get_api_parameters(self.config)
 
-        # Fallback 메시지 (API 실패 시 사용)
-        self.fallback_message = "AI 댓글 생성에 실패했습니다. 나중에 다시 시도해주세요."
+        # 프롬프트 설정
+        self.prompt_config = get_prompt_config(self.config)
+
+        # 타임아웃 설정
+        self.timeout = self.config['openrouter']['timeout']
+
+        # Fallback 설정
+        self.fallback_message = self.config['fallback']['message']
+        self.min_comment_length = self.config['fallback']['min_comment_length']
 
 
     async def generate_comment(self, post_title: str, post_content: str) -> str:
@@ -110,7 +132,7 @@ class AICommentService:
             logger.info(f"API 호출 완료 - 생성된 댓글 길이: {len(comment) if comment else 0}")
 
             # 댓글 검증 및 정제
-            if comment and len(comment.strip()) > 5:
+            if comment and len(comment.strip()) > self.min_comment_length:
                 logger.info(f"AI 댓글 생성 성공: {comment[:50]}...")
                 return comment.strip()
             else:
@@ -138,9 +160,9 @@ class AICommentService:
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.7,      # 창의성 (0.7 = 적당히 창의적)
-            "max_tokens": 150,       # 최대 토큰 수 (짧은 댓글)
-            "top_p": 0.9             # 다양성
+            "temperature": self.api_params['temperature'],
+            "max_tokens": self.api_params['max_tokens'],
+            "top_p": self.api_params['top_p']
         }
 
         logger.info(f"API 요청 페이로드: model={self.model}, messages_count={len(messages)}")
@@ -196,30 +218,28 @@ class AICommentService:
         - list: OpenRouter 채팅 메시지 형식
 
         Note:
-        - 게시글 요약 댓글
-        - 2-3문장의 짧은 댓글
+        - YAML 설정의 프롬프트 템플릿 사용
+        - 내용이 길면 미리보기로 자동 축소
         """
-        # 내용이 너무 길면 앞부분만 사용 (토큰 절약)
-        content_preview = post_content[:300] if len(post_content) > 300 else post_content
+        # 내용 미리보기 길이 설정
+        preview_length = self.prompt_config['content_preview_length']
+        content_preview = post_content[:preview_length] if len(post_content) > preview_length else post_content
 
+        # 시스템 메시지
         system_message = {
             "role": "system",
-            "content": "당신은 요약 전문가입니다. 게시글 내용을 분석하여 요약한 내용을 작성합니다."
+            "content": self.prompt_config['system_message']
         }
+
+        # 사용자 메시지 (템플릿에 데이터 삽입)
+        user_content = self.prompt_config['user_message_template'].format(
+            title=post_title,
+            content=content_preview
+        )
 
         user_message = {
             "role": "user",
-            "content": f"""다음 게시글의 내용을 2~3문장의 한국어로 요약해주세요.
-
-게시글 제목: {post_title}
-게시글 내용: {content_preview}
-
-댓글 작성 가이드:
-1. 주제에 대한 진심 어린 관심 표현
-2. 토론을 유도하는 질문 또는 의견
-3. 친근하고 환영하는 분위기
-
-댓글:"""
+            "content": user_content
         }
 
         return [system_message, user_message]
