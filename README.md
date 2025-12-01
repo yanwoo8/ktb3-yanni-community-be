@@ -50,7 +50,7 @@
 [7. AI 모델 서빙 - 자동 댓글 생성](#7-ai-모델-서빙---자동-댓글-생성)
 - [7-1. 설명](#7-1-설명)
 - [7-2. 결과](#7-2-결과)
-- [7-3. 기술 스택](#7-3-기술-스택)
+- [7-3. 문제 및 해결](#7-3-문제-및-해결)
 
 
 ---
@@ -927,11 +927,32 @@ curl -X GET http://localhost:8000/dev/status
 - `.env` 파일 생성 및 API 키 설정 안내
 - 의존성 패키지 자동 설치
 
-**AI 모델 서빙 특징:**
-- **무료 사용**: OpenRouter의 무료 모델 활용
-- **비동기 처리**: 게시글 생성 성능에 영향 없음
-- **에러 핸들링**: API 실패 시 fallback 메시지 반환
-- **한국어 지원**: 자연스러운 한국어 댓글 생성
+4. 포인트
+- OpenRouter API 활용한 AI/LLM 모델 서빙
+- 비동기 처리: asyncio (Python 비동기 I/O), FastAPI BackgroundTasks 활용한 백그라운드 작업 관리를 통해 게시글 생성 성능에 영향 없음
+- 에러 핸들링: API 실패 시 fallback 메시지 반환
+- httpx: 비동기
+
+**아키텍처:**
+```
+[게시글 생성 요청]
+       ↓
+[PostController] → 게시글 DB 저장
+       ↓
+[201 Created 응답] ← 즉시 반환
+       ↓
+[BackgroundTask] → AI 댓글 생성 (비동기)
+       ↓
+[AICommentService] → OpenRouter API 호출
+       ↓
+[CommentController] → AI 댓글 DB 저장
+```
+
+**환경 설정:**
+- `.env`: 환경변수 관리
+- `setup.sh`: 자동 설정 스크립트
+- `pyproject.toml`: 의존성 관리 (httpx 추가)
+
 
 **검증:** 게시글 생성 후 자동으로 AI 댓글이 추가되는지 확인
 
@@ -988,65 +1009,76 @@ curl -X GET http://localhost:8000/posts/1/comments
 
 </details>
 
+### 7-3. 문제 및 해결
+
 <details>
-<summary>AI 댓글 예시</summary>
+<summary>1. OpenRouter API 연결 안됨</summary>
 
-**게시글 제목:** "FastAPI와 AI 통합"
-**게시글 내용:** "OpenRouter를 사용해서 무료로 LLM 모델을 서빙할 수 있습니다!"
+**문제 상황:** AI 댓글이 생성되지 않고 fallback 메시지만 저장됨.
 
-**AI가 생성한 댓글:**
-> "오 OpenRouter로 무료 LLM 서빙이 가능하다니 정말 유용한 정보네요! 실제 프로젝트에 어떻게 적용하셨는지 더 자세히 알려주실 수 있을까요?"
+**원인:**
 
-**특징:**
-- 게시글 내용을 이해하고 관련된 댓글 작성
-- 자연스러운 한국어 표현
-- 토론을 유도하는 질문 포함
-- 긍정적이고 친근한 분위기
+- ✅ `.env` 파일에 OpenRouter API 키 존재
+- ✅ OpenRouter API 직접 호출은 성공
+- ❌ FastAPI 애플리케이션 내에서 환경변수 로드 실패
+> FastAPI 애플리케이션이 시작될 때 `python-dotenv`로 환경변수를 로드해야 하는데, 이 과정이 빠져있어서 `os.getenv("OPENROUTER_API_KEY")`가 `None`을 반환하고 있었음.
 
+**해결:**
+1. 디버깅1: `app/services/ai_comment_service.py`에 디버깅용 로그 추가
+    - API 토큰 확인 로그
+    - API 호출 단계별 로그
+    - 에러 상세 로그
+
+2. 디버깅2: 테스트코드 생성
+    - `test_ai_comment.sh`: AI 댓글 생성 전체 플로우 테스트
+    - `test_openrouter_api.py`: OpenRouter API python으로 직접 테스트
+
+2. 수정: `app/main.py`
+    ```
+    from dotenv import load_dotenv
+    load_dotenv()
+    ```
 </details>
 
-### 7-3. 기술 스택
 
-**AI 모델 서빙:**
-- **OpenRouter API**: 다양한 LLM 모델 통합 플랫폼
-- **모델**: `google/gemini-2.0-flash-exp:free`
-  - Google Gemini 2.0 Flash (무료 버전)
-  - 빠른 응답 속도 (2-5초)
-  - 한국어 지원 우수
-  - 무료 크레딧 제공
+<details>
+<summary>2. Rate Limit 문제</summary>
 
-**비동기 처리:**
-- **FastAPI BackgroundTasks**: 백그라운드 작업 관리
-- **httpx**: 비동기 HTTP 클라이언트
-- **asyncio**: Python 비동기 I/O
-
-**아키텍처:**
+**문제 상황:**
 ```
-[게시글 생성 요청]
-       ↓
-[PostController] → 게시글 DB 저장
-       ↓
-[201 Created 응답] ← 즉시 반환
-       ↓
-[BackgroundTask] → AI 댓글 생성 (비동기)
-       ↓
-[AICommentService] → OpenRouter API 호출
-       ↓
-[CommentController] → AI 댓글 DB 저장
+상태 코드: 429 (Too Many Requests)
+에러: "google/gemini-2.0-flash-exp:free is temporarily rate-limited upstream"
 ```
 
-**환경 설정:**
-- `.env`: 환경변수 관리
-- `setup.sh`: 자동 설정 스크립트
-- `pyproject.toml`: 의존성 관리 (httpx 추가)
+**원인:**
+- OpenRouter의 **무료 Gemini 2.0 Flash 모델**을 사용했으나 Google upstream에서 일시적으로 **rate limit**에 걸림.
 
-**에러 처리:**
-- API 토큰 없음 → fallback 메시지
-- API 호출 실패 → fallback 메시지
-- 타임아웃 (30초) → fallback 메시지
-- 생성된 댓글 검증 → 최소 길이 확인
+**해결:** Meta의 Llama 3.2 모델로 변경
+- 파일: `app/services/ai_comment_service.py`
+```python
+# Before
+self.model = "google/gemini-2.0-flash-exp:free"
 
+# After
+self.model = "meta-llama/llama-3.2-3b-instruct:free"
+```
 
+**이후에도 이 문제가 재발할 시:**
+
+1. **즉시 해결 (모델 변경)**
+    1. `app/services/ai_comment_service.py` 열기
+    2. `self.model` 값을 위 목록에서 다른 모델로 변경
+    3. 서버 재시작
+
+2. **장기적 해결 (유료 플랜)**
+    - OpenRouter에서 크레딧을 충전하면:
+    - Rate limit 없음
+    - 더 빠른 모델 사용 가능
+    - GPT-4, Claude 등 프리미엄 모델 사용 가능
+
+**이후 추가가 필요한 기능:**  
+Rate Limit으로 AI 요약 기능이 수행되지 않았을 경우, 이 State를 기억해뒀다가, 일정 시간 이후 재시도하는 기능
+</details>
 
 
 
@@ -1056,7 +1088,6 @@ curl -X GET http://localhost:8000/posts/1/comments
 
 
 ## 다음 단계
-- [x] AI 모델 서빙 (OpenRouter)
 - [ ] 비밀번호 해싱 (bcrypt)
 - [ ] 인증/인가 (JWT Token)
 - [ ] 페이지네이션 구현
