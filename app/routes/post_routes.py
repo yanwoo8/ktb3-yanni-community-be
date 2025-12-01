@@ -170,6 +170,7 @@ def create_post(
     - post (PostCreate): 게시글 생성 요청 데이터
     - background_tasks (BackgroundTasks): FastAPI 백그라운드 작업
     - controller (PostController): 의존성 주입된 컨트롤러
+>>>>>>> origin/main
 
     Returns:
     - Dict: 생성 메시지 + 게시글 데이터
@@ -190,6 +191,15 @@ def create_post(
             author_id=post.author_id,
             image_url=post.image_url
         )
+
+        # 백그라운드 작업: AI 댓글 추가
+        background_tasks.add_task(
+            add_ai_comment_background,
+            post_id=result["id"],
+            post_title=result["title"],
+            post_content=result["content"]
+        )
+
 
         # 백그라운드 작업: AI 댓글 추가
         background_tasks.add_task(

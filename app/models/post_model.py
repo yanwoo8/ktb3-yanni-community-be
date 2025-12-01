@@ -59,6 +59,14 @@ class PostModel:
         - db (Session): SQLAlchemy 세션 (의존성 주입)
         """
         self.db = db
+    def __init__(self, db: Session):
+        """
+        Model 초기화
+
+        Args:
+        - db (Session): SQLAlchemy 세션 (의존성 주입)
+        """
+        self.db = db
 
 
     # ==================== CREATE ====================
@@ -105,6 +113,7 @@ class PostModel:
 
     # ==================== READ ====================
 
+    def find_by_id(self, post_id: int) -> Optional[Post]:
     def find_by_id(self, post_id: int) -> Optional[Post]:
         """
         ID로 게시글 조회
