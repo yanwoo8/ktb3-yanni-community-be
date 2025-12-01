@@ -34,12 +34,17 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
+<<<<<<< HEAD
 from dotenv import load_dotenv
 from app.routes import auth_routes, post_routes, comment_routes, dev_routes
 from app.databases import init_db
 
 # .env 파일 로드 (환경변수 설정)
 load_dotenv()
+=======
+from app.routes import auth_routes, post_routes, comment_routes, dev_routes
+from app.database import init_db
+>>>>>>> origin/main
 
 
 # ==================== Lifespan Event ====================

@@ -19,7 +19,11 @@ User Model (Database Repository)
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+<<<<<<< HEAD
 from app.databases.db_models import User
+=======
+from app.db_models import User
+>>>>>>> origin/main
 
 
 class UserModel:

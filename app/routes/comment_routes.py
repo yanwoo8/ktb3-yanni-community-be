@@ -19,12 +19,20 @@ Endpoints:
 - DELETE /comments/{comment_id}: 댓글 삭제
 """
 
+<<<<<<< HEAD
 from typing import Dict
+=======
+from typing import Dict, List
+>>>>>>> origin/main
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
+<<<<<<< HEAD
 from app.databases import get_db
+=======
+from app.database import get_db
+>>>>>>> origin/main
 from app.models.comment_model import CommentModel
 from app.models.user_model import UserModel
 from app.models.post_model import PostModel
@@ -109,6 +117,45 @@ def create_comment(
 
 # ==================== READ ====================
 
+<<<<<<< HEAD
+=======
+@router.get("/post/{post_id}", status_code=200)
+def get_comments_by_post(
+    post_id: int,
+    controller: CommentController = Depends(get_comment_controller)
+) -> Dict:
+    """
+    특정 게시글의 댓글 목록 조회 (GET /comments/post/{post_id})
+
+    Args:
+    - post_id (int): 게시글 ID
+    - controller (CommentController): 의존성 주입된 컨트롤러
+
+    Returns:
+    - Dict: 성공 메시지 + 댓글 개수 + 댓글 목록
+
+    Status Code:
+    - 200 OK: 조회 성공
+    - 500 Internal Server Error: 서버 오류
+    """
+    try:
+        comments = controller.get_by_post_id(post_id)
+        return {
+            "message": "Success",
+            "count": len(comments),
+            "data": comments
+        }
+
+    except SQLAlchemyError as e:
+        logger.error(f"댓글 목록 조회 실패 (DB 오류) - post_id: {post_id}, error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="데이터베이스 오류가 발생했습니다")
+
+    except Exception as e:
+        logger.error(f"댓글 목록 조회 실패 - post_id: {post_id}, error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="댓글 조회 중 오류가 발생했습니다")
+
+
+>>>>>>> origin/main
 @router.get("/{comment_id}", status_code=200)
 def get_comment(
     comment_id: int,
