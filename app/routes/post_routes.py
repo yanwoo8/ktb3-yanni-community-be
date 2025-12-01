@@ -38,7 +38,6 @@ from app.controllers.comment_controller import CommentController
 from app.schemas.post_schema import PostCreate, PostPartialUpdate
 from app.services.ai_comment_service import get_ai_comment_service
 import logging
-import asyncio
 
 
 # ==================== Router Setup ====================
@@ -53,6 +52,7 @@ logger = logging.getLogger(__name__)
 
 # ==================== Helper Functions ====================
 
+
 def get_post_controller(db: Session = Depends(get_db)) -> PostController:
     """
     PostController 의존성 주입 함수
@@ -63,8 +63,9 @@ def get_post_controller(db: Session = Depends(get_db)) -> PostController:
     Returns:
     - PostController: 게시글 컨트롤러 인스턴스
     """
-    post_model = PostModel(db)
+
     user_model = UserModel(db)
+    post_model = PostModel(db)
     user_controller = UserController(user_model)
     return PostController(post_model, user_controller)
 
@@ -81,10 +82,13 @@ def get_comment_controller(db: Session = Depends(get_db)) -> CommentController:
     """
     comment_model = CommentModel(db)
     user_model = UserModel(db)
-    user_controller = UserController(user_model)
     post_model = PostModel(db)
+
+    user_controller = UserController(user_model)
     post_controller = PostController(post_model, user_controller)
+
     return CommentController(comment_model, user_controller, post_controller)
+
 
 
 async def add_ai_comment_background(
@@ -146,14 +150,18 @@ async def add_ai_comment_background(
         db.close()
 
 
+
+
+
+
+
 # ==================== CREATE ====================
 
 @router.post("", status_code=201)
 def create_post(
     post: PostCreate,
     background_tasks: BackgroundTasks,
-    controller: PostController = Depends(get_post_controller),
-    db: Session = Depends(get_db)
+    controller: PostController = Depends(get_post_controller)
 ) -> Dict:
     """
     게시글 생성 엔드포인트 (POST /posts)
@@ -162,7 +170,6 @@ def create_post(
     - post (PostCreate): 게시글 생성 요청 데이터
     - background_tasks (BackgroundTasks): FastAPI 백그라운드 작업
     - controller (PostController): 의존성 주입된 컨트롤러
-    - db (Session): 데이터베이스 세션
 
     Returns:
     - Dict: 생성 메시지 + 게시글 데이터
@@ -206,6 +213,9 @@ def create_post(
         raise HTTPException(status_code=500, detail="게시글 생성 중 오류가 발생했습니다")
 
 
+
+
+
 # ==================== READ ====================
 
 @router.get("", status_code=200)
@@ -236,6 +246,8 @@ def get_all_posts(
     except Exception as e:
         logger.error(f"게시글 목록 조회 실패 - error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="게시글 조회 중 오류가 발생했습니다")
+
+
 
 
 @router.get("/{post_id}", status_code=200)
