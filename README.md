@@ -3,6 +3,9 @@
 > FastAPI를 활용한 커뮤니티 백엔드 API 개발 학습 프로젝트  
 > FE Repository: [ktb3-yanni-community-fe](https://github.com/yanwoo8/ktb3-yanni-community-fe)
 
+> FastAPI를 활용한 커뮤니티 백엔드 API 개발 학습 프로젝트  
+> FE Repository: [ktb3-yanni-community-fe](https://github.com/yanwoo8/ktb3-yanni-community-fe)
+
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.2-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
