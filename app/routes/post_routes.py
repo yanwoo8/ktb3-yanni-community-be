@@ -21,6 +21,22 @@ Endpoints:
 - PATCH /posts/{post_id}: 게시글 부분 수정
 - DELETE /posts/{post_id}: 게시글 삭제
 - POST /posts/{post_id}/like: 게시글 좋아요 토글
+
+Dependencies:
+- get_post_controller [PostController] Depands get_db [Session]
+    - create_post (POST /posts) Depands on get_post_controller
+    - get_all_posts (GET /posts) Depands on get_post_controller
+    - get_post_by_id (GET /posts/{post_id}) Depands on get_post_controller
+    - update_post (PUT /posts/{post_id}) Depands on get_post_controller
+    - partial_update_post (PATCH /posts/{post_id}) Depands on get_post_controller
+    - delete_post (DELETE /posts/{post_id}) Depands on get_post_controller
+    - toggle_like (POST /posts/{post_id}/like) Depands on get_post_controller
+
+- get_comment_controller [CommentController] Depands on get_db [Session]
+    - get_post_comments (GET /posts/{post_id}/comments) Depands get_comment_controller
+
+- get_db: 데이터베이스 세션 생성 및 자동 종료
+
 """
 
 from typing import Dict
@@ -299,6 +315,8 @@ def get_post_by_id(
         raise HTTPException(status_code=500, detail="게시글 조회 중 오류가 발생했습니다")
 
 
+
+
 @router.get("/{post_id}/comments", status_code=200)
 def get_post_comments(
     post_id: int,
@@ -333,6 +351,8 @@ def get_post_comments(
     except Exception as e:
         logger.error(f"댓글 목록 조회 실패 - post_id: {post_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="댓글 조회 중 오류가 발생했습니다")
+
+
 
 
 # ==================== UPDATE ====================
@@ -432,6 +452,8 @@ def partial_update_post(
     except Exception as e:
         logger.error(f"게시글 부분 수정 실패 - post_id: {post_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="게시글 수정 중 오류가 발생했습니다")
+
+
 
 
 # ==================== DELETE ====================

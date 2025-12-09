@@ -17,6 +17,13 @@ Endpoints:
 - GET /comments/{comment_id}: 특정 댓글 조회
 - PUT /comments/{comment_id}: 댓글 수정
 - DELETE /comments/{comment_id}: 댓글 삭제
+
+Dependencies:
+- get_comment_controller [CommentController] Depends on get_db [Session]
+    - create_comment (POST /comments) Depends on get_comment_controller
+    - get_comment (GET /comments/{comment_id}) Depends on get_comment_controller
+    - update_comment (PUT /comments/{comment_id}) Depends on get_comment_controller
+    - delete_comment (DELETE /comments/{comment_id}) Depends on get_comment_controller
 """
 
 from typing import Dict
@@ -63,6 +70,10 @@ def get_comment_controller(db: Session = Depends(get_db)) -> CommentController:
     user_controller = UserController(user_model)
     post_controller = PostController(post_model, user_controller)
     return CommentController(comment_model, user_controller, post_controller)
+
+
+
+
 
 
 # ==================== CREATE ====================

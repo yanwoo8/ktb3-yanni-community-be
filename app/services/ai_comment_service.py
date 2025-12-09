@@ -40,6 +40,8 @@ class AICommentService:
     AI 댓글 자동 생성 서비스 (OpenRouter 활용)
 
     Attributes:
+    - api_token: OpenRouter API 토큰 # 보안:getenv
+    - config: 서비스 설정
     - api_url: OpenRouter API URL
     - headers: API 인증 헤더
     - model: 사용할 LLM 모델

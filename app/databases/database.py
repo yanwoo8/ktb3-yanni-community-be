@@ -63,6 +63,7 @@ SessionLocal = sessionmaker(
     bind=engine       # 위에서 만든 engine과 연결
 )
 
+
 # Base: ORM (데이터베이스 테이블) 모델들의 부모 클래스
 # 모든 ORM 모델은 이 Base를 상속받음
 Base = declarative_base()
@@ -97,8 +98,10 @@ def get_db() -> Generator:
     try:
         yield db        # 세션을 전달자(FastAPI)에 전달
     #    db.commit()    # 트랜잭션 커밋
+
     #except Exception:
     #    db.rollback()  # 오류 발생 시 롤백
+    
     finally:
         db.close()      # 세션 닫기
 

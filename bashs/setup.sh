@@ -252,3 +252,9 @@ echo ""
 
 # run server
 uvicorn main:app --reload
+
+# =====================================================
+
+#cd FEproject
+#python -m http.server 3000
+#http://localhost:3000

@@ -1,6 +1,8 @@
 # Community Backend - FastAPI Learning Project
 
-> FastAPI를 활용한 커뮤니티 백엔드 API 개발 학습 프로젝트
+> FastAPI를 활용한 커뮤니티 백엔드 API 개발 학습 프로젝트  
+> FE Repository: [ktb3-yanni-community-fe](https://github.com/yanwoo8/ktb3-yanni-community-fe)
+
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.2-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -57,6 +59,7 @@
 - [7-2. 결과](#7-2-결과)
 - [7-3. 문제 및 해결](#7-3-문제-및-해결)
 
+[8. 프론트엔드 구현](#8-프론트엔드-구현)
 
 ---
 
@@ -941,6 +944,7 @@ curl -X GET http://localhost:8000/dev/status
 - 에러 핸들링: API 실패 시 fallback 메시지 반환
 - httpx: 비동기
 - BackgroundTasks 사용하여 백그라운드에서 실행
+- BackgroundTasks 사용하여 백그라운드에서 실행
 
 
 **환경 설정:**
@@ -1082,10 +1086,19 @@ Rate Limit으로 AI 요약 기능이 수행되지 않았을 경우, 이 State를
 
 
 
+## 8. 프론트엔드 구현
+[Github: ktb3-yanni-community-fe](https://github.com/yanwoo8/ktb3-yanni-community-fe)
+- 사용한 기술: HTML, CSS, JavaScript(Vanilla)
+
+
+
+
+---
+
+
+
 
 ## 다음 단계
 - [ ] 비밀번호 해싱 (bcrypt)
 - [ ] 인증/인가 (JWT Token)
 - [ ] 페이지네이션 구현
-- [ ] 단위 테스트 작성 (pytest)
-- [ ] FE 구현
