@@ -37,6 +37,7 @@ from app.databases import get_db
 from app.models.user_model import UserModel
 from app.controllers.user_controller import UserController
 from app.schemas.auth_schema import UserRegister, UserLogin, NicknameUpdate
+from app.utils.auth import create_access_token
 import logging
 
 
@@ -211,7 +212,20 @@ def login(
     - controller (UserController): 의존성 주입된 컨트롤러
 
     Returns:
-    - Dict: 로그인 성공 메시지 + 사용자 정보
+    - Dict: 로그인 성공 메시지 + JWT 토큰 + 사용자 정보
+
+    Response Example:
+    {
+        "message": "로그인 성공",
+        "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "token_type": "bearer",
+        "user": {
+            "id": 1,
+            "email": "user@example.com",
+            "nickname": "닉네임",
+            "profile_image": "https://..."
+        }
+    }
 
     Status Code:
     - 200 OK: 로그인 성공
@@ -219,11 +233,21 @@ def login(
     - 500 Internal Server Error: 서버 오류
     """
     try:
-        result = controller.login(
+        # 로그인 처리 (사용자 정보 반환)
+        user = controller.login(
             email=login_data.email,
             password=login_data.password
         )
-        return {"message": "로그인 성공", "data": result}
+
+        # ✨ JWT 토큰 생성 (사용자 ID를 sub에 저장)
+        access_token = create_access_token(data={"sub": str(user["id"])})
+
+        return {
+            "message": "로그인 성공",
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": user
+        }
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

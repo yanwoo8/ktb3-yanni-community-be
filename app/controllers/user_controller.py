@@ -66,30 +66,25 @@ class UserController:
         - ValueError: 유효성 검증 실패 시
 
         Business Logic:
-        1. 프로필 사진 확인
-        2. 이메일 중복 확인
-        3. 비밀번호 확인 일치 여부
-        4. 닉네임 중복 확인
-        5. 사용자 생성 및 저장
+        1. 이메일 중복 확인
+        2. 비밀번호 확인 일치 여부
+        3. 닉네임 중복 확인
+        4. 사용자 생성 및 저장
         """
 
-        # 1. 프로필 사진 확인
-        if not profile_image:
-            raise ValueError("*프로필 사진을 추가해주세요")
-
-        # 2. 이메일 중복 확인
+        # 1. 이메일 중복 확인
         if self.user_model.find_by_email(email):
             raise ValueError("*중복된 이메일입니다")
 
-        # 3. 비밀번호 확인 일치 여부
+        # 2. 비밀번호 확인 일치 여부
         if password != password_confirm:
             raise ValueError("*비밀번호가 다릅니다")
 
-        # 4. 닉네임 중복 확인
+        # 3. 닉네임 중복 확인
         if self.user_model.find_by_nickname(nickname):
             raise ValueError("*중복된 닉네임 입니다.")
 
-        # 5. 사용자 생성 (Model에 위임)
+        # 4. 사용자 생성 (Model에 위임)
         created_user = self.user_model.create(
             email=email,
             password=password,  # 실제로는 해싱하여 저장해야 함

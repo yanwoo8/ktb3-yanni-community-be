@@ -32,6 +32,10 @@ dependencies = [
     "python-dotenv>=1.0.0",      # Environment variable management
     "pyyaml>=6.0.0",             # YAML configuration file parser
 
+    # Security & Authentication
+    "python-jose[cryptography]>=3.3.0",  # JWT token generation and validation
+    "passlib[bcrypt]>=1.7.4",            # Password hashing
+
     # AI & LLM
     "httpx>=0.25.0"              # Async HTTP client for API calls (OpenRouter)
 ]

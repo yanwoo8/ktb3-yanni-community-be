@@ -53,6 +53,7 @@ from app.controllers.user_controller import UserController
 from app.controllers.comment_controller import CommentController
 from app.schemas.post_schema import PostCreate, PostPartialUpdate
 from app.services.ai_comment_service import get_ai_comment_service
+from app.utils.dependencies import get_current_user
 import logging
 
 
@@ -177,45 +178,56 @@ async def add_ai_comment_background(
 def create_post(
     post: PostCreate,
     background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
     controller: PostController = Depends(get_post_controller)
 ) -> Dict:
     """
     게시글 생성 엔드포인트 (POST /posts)
 
     Args:
-    - post (PostCreate): 게시글 생성 요청 데이터
+    - post (PostCreate): 게시글 생성 요청 데이터 (title, content, image_url)
     - background_tasks (BackgroundTasks): FastAPI 백그라운드 작업
+    - current_user (dict): JWT 토큰에서 추출한 현재 로그인 사용자 정보
     - controller (PostController): 의존성 주입된 컨트롤러
->>>>>>> origin/main
 
     Returns:
     - Dict: 생성 메시지 + 게시글 데이터
 
     Status Code:
     - 201 Created: 생성 성공
-    - 400 Bad Request: 작성자가 존재하지 않음
+    - 401 Unauthorized: 인증되지 않은 사용자
+    - 400 Bad Request: 유효성 검증 실패
     - 500 Internal Server Error: 서버 오류
 
     Note:
+    - JWT 인증 필수: Authorization 헤더에 Bearer 토큰 필요
+    - author_id는 토큰에서 자동 추출 (요청 바디에 포함 불필요)
     - 게시글 생성 후 백그라운드에서 AI 댓글 자동 추가
     - AI 댓글 추가 실패는 사용자 응답에 영향 없음
+
+    Example Request:
+    ```
+    POST /posts
+    Headers:
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    Body:
+        {
+            "title": "게시글 제목",
+            "content": "게시글 내용",
+            "image_url": "https://example.com/image.jpg"
+        }
+    ```
     """
+    # JWT 토큰에서 추출한 사용자 ID를 author_id로 사용
+    author_id = current_user["id"]
+
     try:
         result = controller.create(
             title=post.title,
             content=post.content,
-            author_id=post.author_id,
+            author_id=author_id,
             image_url=post.image_url
         )
-
-        # 백그라운드 작업: AI 댓글 추가
-        background_tasks.add_task(
-            add_ai_comment_background,
-            post_id=result["id"],
-            post_title=result["title"],
-            post_content=result["content"]
-        )
-
 
         # 백그라운드 작업: AI 댓글 추가
         background_tasks.add_task(
@@ -231,11 +243,11 @@ def create_post(
         raise HTTPException(status_code=400, detail=str(e))
 
     except SQLAlchemyError as e:
-        logger.error(f"게시글 생성 실패 (DB 오류) - author_id: {post.author_id}, error: {str(e)}", exc_info=True)
+        logger.error(f"게시글 생성 실패 (DB 오류) - author_id: {author_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="데이터베이스 오류가 발생했습니다")
 
     except Exception as e:
-        logger.error(f"게시글 생성 실패 - author_id: {post.author_id}, error: {str(e)}", exc_info=True)
+        logger.error(f"게시글 생성 실패 - author_id: {author_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="게시글 생성 중 오류가 발생했습니다")
 
 

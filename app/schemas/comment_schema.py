@@ -22,15 +22,14 @@ class CommentCreate(BaseModel):
 
     Fields:
     - post_id (int): 게시글 ID (필수)
-    - author_id (int): 작성자 ID (필수)
     - content (str): 댓글 내용 (필수)
 
     Note:
+    - author_id는 JWT 토큰에서 자동으로 추출되므로 제외
     - FastAPI는 이 모델을 보고 자동으로 request body 파싱
     - 타입 불일치 시 422 Unprocessable Entity 반환
     """
     post_id: int
-    author_id: int
     content: str
 
     @field_validator('content')

@@ -251,7 +251,10 @@ echo ""
 # =====================================================
 
 # run server
-uvicorn main:app --reload
+# 기존 DB를 삭제하고 싶다면 community.db 파일을 삭제하세요.
+#  rm community.db
+#  then run:
+uvicorn app.main:app --reload
 
 # =====================================================
 

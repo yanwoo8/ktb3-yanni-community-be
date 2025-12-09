@@ -54,12 +54,14 @@
 - [7-2. 결과](#7-2-결과)
 - [7-3. 문제 및 해결](#7-3-문제-및-해결)
 
-[7. AI 모델 서빙 - 자동 댓글 생성](#7-ai-모델-서빙---자동-댓글-생성)
-- [7-1. 설명](#7-1-설명)
-- [7-2. 결과](#7-2-결과)
-- [7-3. 문제 및 해결](#7-3-문제-및-해결)
-
 [8. 프론트엔드 구현](#8-프론트엔드-구현)
+
+[9. JWT 인증 시스템 구현](#9-jwt-인증-시스템-구현)
+- [9-1. 설명](#9-1-설명)
+- [9-2. 구현 내용](#9-2-구현-내용)
+- [9-3. API 변경 사항](#9-3-api-변경-사항)
+- [9-4. 사용 방법](#9-4-사용-방법)
+- [9-5. 보안 고려사항](#9-5-보안-고려사항)
 
 ---
 
@@ -919,6 +921,7 @@ curl -X GET http://localhost:8000/dev/status
 ### 7-1. 설명
 
 **branch name:** `feature/ai-comment`
+
 **구현 내용:**
 1. OpenRouter API를 활용한 LLM 모델 서빙
 - `app/services/ai_comment_service.py`: AI 댓글 생성 서비스
@@ -1095,10 +1098,86 @@ Rate Limit으로 AI 요약 기능이 수행되지 않았을 경우, 이 State를
 
 ---
 
+## 9. JWT 인증 시스템 구현
+
+### 9-1. 설명
+
+**branch name:** `feature/jwt-authentication`
+
+**구현 내용:**
+- 기존에는 게시글/댓글 작성 시 `author_id`를 클라이언트에서 직접 전송
+- 토큰 기반 인증 시스템을 구현하여 사용자 인증/인가 기능을 추가
+- JWT 토큰을 통해 자동으로 인증된 사용자 정보를 추출
+
+**핵심 기능:**
+- JWT 토큰 기반 사용자 인증
+- 로그인 시 토큰 발급 (유효기간: 7일)
+- 인증이 필요한 API에서 자동으로 사용자 정보 추출
+- `author_id` 수동 입력 제거 (보안 강화)
+
+- JWT 토큰 생성 & 검증 ([app/utils/auth.py](app/utils/auth.py))
+- 인증 의존성: JWT 토큰을 추출하여 사용자 정보 반환 ([app/utils/dependencies.py](app/utils/dependencies.py))
+- 게시글/댓글 작성 API 변경
+    **이전:**
+    ```json
+    {
+    "post_id": 1,
+    "content": "댓글 내용",
+    "author_id": 1  ❌
+    }
+    ```
+
+    **변경 후:**
+    ```json
+    {
+    "post_id": 1,
+    "content": "댓글 내용"
+    ✅ author_id 제거
+    }
+    ```
+- 게시글/댓글 Schema 변경
+- 아키텍처 보안 강화
+    ```
+    Before (보안 취약):
+    Client → [author_id=1] → Server ❌ 클라이언트가 임의로 설정 가능
+
+    After (보안 강화):
+    Client → [JWT Token] → Server → verify_token() → extract user_id ✅
+    ```
+
+
+### 9-2. 보안 고려사항
+##### ✅ 구현된 보안 기능
+1. **토큰 기반 인증**: 세션 방식보다 확장성이 뛰어남
+2. **author_id 자동 추출**: 클라이언트가 임의로 다른 사용자 행세 불가
+3. **토큰 만료**: 7일 후 자동 만료 (재로그인 필요)
+4. **HTTPS 권장**: 프로덕션 환경에서는 HTTPS 필수
+
+##### ⚠️ 추가 구현 필요 사항
+- [ ] 비밀번호 해싱 (현재는 평문 저장 - 위험!)
+- [ ] Refresh Token (Access Token 재발급)
+- [ ] Token Blacklist (로그아웃 시 토큰 무효화)
+- [ ] Rate Limiting (brute force 공격 방지)
+- [ ] CORS 설정 강화 (특정 도메인만 허용)
+
+##### 🔒 환경 변수 설정
+```bash
+# .env
+JWT_SECRET_KEY=your-secret-key-please-change-this-in-production
+
+# 강력한 시크릿 키 생성 방법
+openssl rand -hex 32
+```
+
+
+
+
+---
+
 
 
 
 ## 다음 단계
 - [ ] 비밀번호 해싱 (bcrypt)
-- [ ] 인증/인가 (JWT Token)
+- [ ] Refresh Token 구현
 - [ ] 페이지네이션 구현
