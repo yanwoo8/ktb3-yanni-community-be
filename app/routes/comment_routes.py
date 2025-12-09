@@ -39,6 +39,7 @@ from app.controllers.comment_controller import CommentController
 from app.controllers.user_controller import UserController
 from app.controllers.post_controller import PostController
 from app.schemas.comment_schema import CommentCreate, CommentUpdate
+from app.utils.dependencies import get_current_user
 import logging
 
 
@@ -81,13 +82,15 @@ def get_comment_controller(db: Session = Depends(get_db)) -> CommentController:
 @router.post("", status_code=201)
 def create_comment(
     comment: CommentCreate,
+    current_user: dict = Depends(get_current_user),
     controller: CommentController = Depends(get_comment_controller)
 ) -> Dict:
     """
     댓글 생성 엔드포인트 (POST /comments)
 
     Args:
-    - comment (CommentCreate): 댓글 생성 요청 데이터
+    - comment (CommentCreate): 댓글 생성 요청 데이터 (post_id, content)
+    - current_user (dict): JWT 토큰에서 추출한 현재 로그인 사용자 정보
     - controller (CommentController): 의존성 주입된 컨트롤러
 
     Returns:
@@ -95,13 +98,33 @@ def create_comment(
 
     Status Code:
     - 201 Created: 생성 성공
-    - 400 Bad Request: 작성자/게시글이 존재하지 않음
+    - 401 Unauthorized: 인증되지 않은 사용자
+    - 400 Bad Request: 게시글이 존재하지 않음
     - 500 Internal Server Error: 서버 오류
+
+    Note:
+    - JWT 인증 필수: Authorization 헤더에 Bearer 토큰 필요
+    - author_id는 토큰에서 자동 추출 (요청 바디에 포함 불필요)
+
+    Example Request:
+    ```
+    POST /comments
+    Headers:
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    Body:
+        {
+            "post_id": 1,
+            "content": "댓글 내용"
+        }
+    ```
     """
+    # JWT 토큰에서 추출한 사용자 ID를 author_id로 사용
+    author_id = current_user["id"]
+
     try:
         result = controller.create(
             post_id=comment.post_id,
-            author_id=comment.author_id,
+            author_id=author_id,
             content=comment.content
         )
         return {"message": "Created", "data": result}
@@ -110,11 +133,11 @@ def create_comment(
         raise HTTPException(status_code=400, detail=str(e))
 
     except SQLAlchemyError as e:
-        logger.error(f"댓글 생성 실패 (DB 오류) - post_id: {comment.post_id}, author_id: {comment.author_id}, error: {str(e)}", exc_info=True)
+        logger.error(f"댓글 생성 실패 (DB 오류) - post_id: {comment.post_id}, author_id: {author_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="데이터베이스 오류가 발생했습니다")
 
     except Exception as e:
-        logger.error(f"댓글 생성 실패 - post_id: {comment.post_id}, error: {str(e)}", exc_info=True)
+        logger.error(f"댓글 생성 실패 - post_id: {comment.post_id}, author_id: {author_id}, error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="댓글 생성 중 오류가 발생했습니다")
 
 

@@ -592,6 +592,25 @@ routing_table = {
 
 ## Security
 
+- **Authentication 인증**: "누구인가?" 사용자의 신원을 확인(=식별)
+- **Authorization 인가**: "권한이 있는가?" 사용자와 제작자 사이에 프로그램 사용 권한을 주고받는 것 - 접근 권한을 허가받는 것.
+
+- **HTTPBearer**: FastAPI에서 제공하는 보안 스키마
+    - HTTP Authorization 헤더에서 Bearer 토큰을 자동으로 추출하는 유틸리티
+    - [dependencies.py](/app/utils/dependencies.py)에서 사용 중
+    - "Authorization: Bearer <token>" 형식의 헤더를 자동으로 파싱해주는 FastAPI의 편리한 도구
+    1. Authorization 헤더 자동 파싱 - 클라이언트가 보낸 HTTP 헤더에서 Bearer 토큰을 자동으로 추출
+    2. HTTPAuthorizationCredentials 객체 반환
+    ```
+    security = HTTPBearer(auto_error=False)
+    auto_error=True (기본값): 토큰이 없으면 FastAPI가 자동으로 401 에러 발생
+    auto_error=False: 토큰이 없어도 에러를 자동으로 발생시키지 않고, 우리가 직접 처리
+    더 자세한 한국어 에러 메시지 제공 가능
+    커스텀 로직 추가 가능
+    ```
+
+
+
 - **One-way Hash Encryption 단방향 해시 암호화 방식들**:
     - **md5**: 아주 예전 방식, 위험함
     - **SHA family**: 빠르지만 비밀번호용으로는 살짝 위험
@@ -599,8 +618,6 @@ routing_table = {
     - **bcrypt**: 메모리도 많이 필요하기 만든 방식. "블로피시"라는 암호화 알고리즘 기반. 일부러 느리게 만들어서 해커가 수백만 번 시도하기 힘들게 함. 같은 비밀번호여도 매번 다른 결과 (salt 사용)
     - ❓SALT
 
-- **Authentication 인증**: "누구인가?" 사용자의 신원을 확인(=식별)
-- **Authorization 인가**: "권한이 있는가?" 사용자와 제작자 사이에 프로그램 사용 권한을 주고받는 것 - 접근 권한을 허가받는 것.
 
 
 

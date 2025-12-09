@@ -28,16 +28,15 @@ class PostCreate(BaseModel):
     - title (str): 게시글 제목 (필수, 최대 26자)
     - content (str): 게시글 내용 (필수)
     - image_url (Optional[str]): 이미지 URL (선택)
-    - author_id (int): 작성자 ID (필수)
 
     Note:
+    - author_id는 JWT 토큰에서 자동으로 추출되므로 제외
     - FastAPI는 이 모델을 보고 자동으로 request body 파싱
     - 타입 불일치 시 422 Unprocessable Entity 반환
     """
     title: str = Field(..., max_length=26)
     content: str
     image_url: Optional[str] = None
-    author_id: int
 
     @field_validator('title')
     @classmethod
