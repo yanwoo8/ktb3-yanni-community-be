@@ -402,6 +402,11 @@ routing_table = {
 - **DCL 데이터 제어어**: 사용자에게 권한 부여/취소
 - `JOIN`/`VIEW`/`UNION`
 
+- ❓SQLite
+- ❓ORM이란? (Object-Relational Mapping)
+- ❓SQLAlchemy 기초
+- ❓관계(Relationship) 이해 (1:N, N:M)
+
 
 - **Transaction 트랜잭션: "하나의 논리적 작업 단위"로 묶인 여러 데이터베이스 작업들**
     - 하나라도 누락되면 전체가 실패하는 것과 마찬가지인 작업 뭉탱이가 있음. (예: 돈 보내기 - 돈받기)
@@ -942,7 +947,9 @@ FastAPI 파싱:
     - ❓타임아웃 미들웨어
     - ❓rate-limit 미들웨어
     - ❓CORSMiddleware
-- ❓CORS
+    - 횡단관심사, 인증, 로깅, CORS, Rate Limiting
+- ❓CORS: 브라우저 개발자 도구 Network 탭에서 응답 헤더 확인
+- ❓Rate Limiting: 1분간 11회 이상 요청하여 429 에러 확인
 
 
 
