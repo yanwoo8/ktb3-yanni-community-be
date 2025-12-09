@@ -19,6 +19,13 @@ Endpoints:
 - POST /auth/login: 로그인
 - PATCH /auth/users/{user_id}/nickname: 닉네임 수정
 - DELETE /auth/users/{user_id}: 회원 탈퇴
+
+Dependencies:
+- get_user_controller [UserController] Depends on get_db [Session]
+    - register (POST /auth/register) Depends on get_user_controller
+    - login (POST /auth/login) Depends on get_user_controller
+    - update_user_nickname (PATCH /auth/users/{user_id}/nickname) Depends on get_user_controller
+    - delete_user (DELETE /auth/users/{user_id}) Depends on get_user_controller
 """
 
 from typing import Dict
@@ -44,7 +51,10 @@ router = APIRouter(
 logger = logging.getLogger(__name__)
 
 
+
+
 # ==================== Helper Functions ====================
+
 
 def get_user_controller(db: Session = Depends(get_db)) -> UserController:
     """
@@ -58,6 +68,8 @@ def get_user_controller(db: Session = Depends(get_db)) -> UserController:
     """
     user_model = UserModel(db)
     return UserController(user_model)
+
+
 
 
 # ==================== API Endpoints ====================

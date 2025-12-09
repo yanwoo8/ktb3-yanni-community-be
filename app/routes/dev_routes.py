@@ -12,6 +12,11 @@ Development Routes (Database Version)
 Endpoints:
 - POST /dev/reset: 모든 데이터베이스 테이블 초기화
 - GET /dev/status: 현재 데이터베이스 상태 조회
+
+Dependencies:
+- reset_all_data (POST /dev/reset) Depends on get_db [Session]
+- get_data_status (GET /dev/status) Depends on get_db [Session]
+
 """
 
 from typing import Dict
@@ -97,6 +102,7 @@ def reset_all_data(db: Session = Depends(get_db)) -> Dict:
         db.rollback()
         logger.error(f"데이터베이스 초기화 실패 - error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="데이터 초기화 중 오류가 발생했습니다")
+
 
 
 @router.get("/status", status_code=200)

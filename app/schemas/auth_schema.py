@@ -32,7 +32,7 @@ Pydantic BaseModel의 역할:
 import re
 from typing import Optional
 from pydantic import BaseModel, EmailStr, field_validator, model_validator, Field, ValidationError
-from pydantic_core import PydanticCustomError
+
 
 
 class UserRegister(BaseModel):

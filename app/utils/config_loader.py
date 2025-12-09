@@ -40,9 +40,11 @@ def load_yaml_config(config_path: str) -> Dict[str, Any]:
             config = yaml.safe_load(f)
             logger.info(f"설정 파일 로드 성공: {config_path}")
             return config
+        
     except FileNotFoundError:
         logger.error(f"설정 파일을 찾을 수 없습니다: {config_path}")
         raise
+    
     except yaml.YAMLError as e:
         logger.error(f"YAML 파싱 오류: {e}")
         raise

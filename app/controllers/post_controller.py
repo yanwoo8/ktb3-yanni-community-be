@@ -18,6 +18,7 @@ Note:
 
 from typing import List, Dict, Optional
 from app.models.post_model import PostModel
+from app.controllers.user_controller import UserController
 
 
 class PostController:
@@ -29,6 +30,7 @@ class PostController:
     - user_controller: 사용자 정보 조회용 (의존성 주입)
 
     Methods:
+    - _post_to_dict: ORM Post 객체를 Dict로 변환
     - create: 게시글 생성
     - get_all: 전체 게시글 조회
     - get_by_id: 특정 게시글 조회
@@ -41,13 +43,13 @@ class PostController:
     - decrement_comment_count: 댓글 수 감소
     """
 
-    def __init__(self, post_model: PostModel, user_controller=None):
+    def __init__(self, post_model: PostModel, user_controller: Optional[UserController] = None):
         """
         Controller 초기화
 
         Args:
         - post_model (PostModel): 의존성 주입된 PostModel 인스턴스
-        - user_controller: 작성자 정보 조회용 (선택)
+        - user_controller: 작성자 정보 조회용 (선택), UserController 인스턴스
         """
         self.post_model = post_model
         self.user_controller = user_controller
@@ -287,5 +289,6 @@ class PostController:
 
 
     # ==================== COMMENT COUNT ====================
-    # 주석: 댓글 수는 ORM relationship (len(post.comments))으로 자동 계산됨
+
+    # 이제 댓글 수는 ORM relationship (len(post.comments))으로 자동 계산되므로 삭제
     # increment/decrement 메서드 불필요

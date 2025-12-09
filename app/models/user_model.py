@@ -79,6 +79,7 @@ class UserModel:
             self.db.commit()
             self.db.refresh(new_user)  # DB에서 생성된 값(id, created_at) 가져오기
             return new_user
+        
         except IntegrityError:
             self.db.rollback()
             raise
@@ -163,6 +164,7 @@ class UserModel:
             self.db.commit()
             self.db.refresh(user)
             return user
+        
         except IntegrityError:
             self.db.rollback()
             raise

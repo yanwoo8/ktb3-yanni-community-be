@@ -1,39 +1,5 @@
 > ❓: 더 공부해보고 추가할 것들
 
-~~1. README 1-2장 다시 읽기 (main.py 이해)~~
-2. routes/의 HTTP 메서드 전부 확인
-
-
-
-
-3. post_routes.py의 각 함수가 뭘 하는지 주석 읽기
-
-4. README 3-5장 읽기 (아키텍처 리팩토링)
-5. post_controller.py 함수 하나씩 이해
-6. 데이터 흐름 따라가보기 (Route → Controller → Model)
-
-7. README 6장 읽기 (SQLite + SQLAlchemy)
-8. db_models.py 테이블 구조 이해
-9. SQLite 데이터베이스 직접 열어보기 (community.db 파일)
-10. Pydantic을 깔고 있는 SQLModel 구조 공부
-
-11. README 7장 읽기 (AI 자동 댓글)
-12. ai_comment_service.py 코드 읽기
-
-13. 교재 보면서 FE 공부, 미니퀘스트 도장깨기
-
-1. 이해: 한 번에 다 이해하려고 하지 말기. 먼저 "이 파일이 뭘 하는지" 큰 그림만 파악하고, 세부 코드는 나중에
-2. 실행: 코드만 읽지 말고, 서버 돌려서 테스트해보기. 값을 바꿔보면서 어떻게 변하는지 관찰
-3. 질문: 특정 파일/함수가 이해 안 되면 물어보세요 - 예: "post_routes.py의 151번째 줄이 무슨 뜻이에요?"
-- 특정 파일 쉽게 설명해줘 (예: "post_routes.py를 줄 단위로 설명해줘")
-- 용어 설명해줘 (예: "의존성 주입이 뭐야?")
-- 실습 가이드 만들어줘 (예: "직접 따라할 수 있는 튜토리얼 만들어줘")
-- 핵심 코드만 추려줘 (예: "게시글 생성 기능만 보고 싶어")
-
-
-
-
-
 
 # Table of Contents
 1. [Basic](#basic)
@@ -282,6 +248,10 @@ routing_table = {
      ↓ 데이터 반환
 [Database]
 ```
+- Route가 Controller에 의존한다. (Route → Model)
+- Controller가 Model에 의존한다. (Model → Controller)
+
+
 - **Route: HTTP 요청/응답 처리 (엔드포인트 정의 및 함수 호출)**
     - URL 경로 정의
     - HTTP 메서드 지정 (GET, POST 등)
@@ -302,28 +272,112 @@ routing_table = {
     - **식당 예시: 창고 관리자 (재료 가져오기)**
 
 
-- **Dependency Injection 의존성 주입**
+- **Dependency Injection 의존성 주입**: 객체가 필요한 의존성을 외부에서 주입받음
     - A가 동작하기 위해 B가 필요할 때, A는 B에 의존한다
     - fastapi: `Depends()` 함수를 통해 의존성을 선언
     - `Afunction(param = Depends(Bfunction))` == A는 B를 필요로 한다.
     - 이러면 fastapi가 알아서 B를 먼저 수행할 수 있도록 보장해줌
 
+    - 장점1. 결합도 낮춤
+    - 장점2. 테스트 용이 (Mock 주입 가능)
+    - 장점3. 코드 재사용성 향상
+
+
+
+
+- **SOC (Separation of Concerns, 관심사의 분리)**: 프로그램을 서로 다른 관심사(책임)에 따라 구분된 섹션으로 나누는 설계 원칙
+    - 각 섹션이 특정 관심사만 다루도록 분리
+    - 코드의 복잡도 감소, 유지보수성 향상
+
+    * routes: HTTP 요청/응답 처리
+    * controllers/services: 비즈니스 로직
+    * schemas/models: 데이터 구조
+    * models/repositories: 데이터베이스 접근
+
+
+**SOLID 원칙**
+* S - SRP: 클래스는 하나의 책임만
+* O - Open/Closed Principle: 확장에는 열려있고, 수정에는 닫혀있음
+* L - Liskov Substitution Principle: 자식 클래스는 부모 클래스를 대체 가능해야 함
+* I - Interface Segregation Principle: 클라이언트가 사용하지 않는 메서드에 의존하면 안 됨
+* D - DIP: 추상화에 의존, 구체화에 의존 X
+
+- **SRP (Single Responsibility Principle, 단일 책임 원칙)**: 클래스나 모듈은 하나의 책임만 가져야 하며, 변경할 이유도 단 하나여야 함.
+    - 한 가지 이유로만 변경되도록 설계
+    - 높은 응집도, 낮은 결합도
+
+- **의존성 역전 원칙(DIP/Dependency Inversion Principle)**: 역방향 의존 없음
+    - 상위 모듈은 하위 모듈에 의존하면 안 됨
+    - 모든 모듈은 **추상화(인터페이스)**에 의존해야 함
+    - **구체적인 것이 추상적인 것에 의존**해야 함
+
+    - 테스트 용이성 향상
+    - 유연한 코드 변경
 
 
 
 
 
+- **계층화 아키텍처 (Layered Architecture)**: 시스템을 수평적 계층으로 나누어, 각 계층이 특정 책임만 담당
+    1. Presentation Layer: TTP 요청/응답, UI
+    2. Business Logic Layer: 비즈니스 규칙, 로직
+    3. Data Access Layer: 데이터베이스 접근
+    4. Database Layer: 실제 데이터 저장소
 
-- ❓관심사의 분리 (SoC) 개념
-- ❓계층화 아키텍처 (Layered Architecture)
-- ❓MVC 패턴 (Model-View-Controller)
+    * 각 계층은 바로 아래 계층만 호출 가능 (예: 1번에서 2번 호출)
+    * 위 계층은 아래 계층에 의존하지만, 역은 불가능
 
-- ❓Domain-Driven Design (DDD)
-- ❓Clean Architecture
-- ❓Service Layer Pattern
+    - 장점: 이해하기 쉽고, 유지보수 편함
+    - 단점: 계층 간 강한 결합, 비즈니스 로직이 프레임워크에 의존
+
+- **MVC 패턴 (Model-View-Controller)**: 애플리케이션을 3가지 역할로 분리
+    - Model: 데이터와 비즈니스 로직
+    - View: 사용자에게 보여지는 부분 (HTML, JSON)
+    - Controller: 입력을 받아 Model과 View를 조율
+    ```
+    User Input
+        ↓
+    Controller → Model
+        ↓         ↓
+           View
+            ↓
+        Response
+    ```
+    * 장점: 역할 분리 명확
+    * 단점: View-Controller가 강하게 결합될 수 있음
+
+- **Domain-Driven Design (DDD)**: 복잡한 비즈니스 도메인을 중심으로 설계. 비즈니스 로직이 핵심
+    - Entity (엔티티): 고유 식별자를 가진 객체
+    - Value Object (값 객체): 식별자 없이 값으로만 구분
+    - Aggregate (집합체): 여러 Entity와 Value Object의 묶음
+    - Repository (저장소): Aggregate를 저장/조회
+    - Domain Service (도메인 서비스): Entity에 속하지 않는 비즈니스 로직
+
+    * 장점: 복잡한 비즈니스 로직 관리에 최적
+    * 단점: 학습 곡선 높음, 작은 프로젝트에는 과함
+
+
+- **Event-Driven Architecture**: 이벤트를 중심으로 시스템 간 통신 (비동기)
+    
+    장점:
+    - 느슨한 결합
+    - 확장성 (새 리스너 추가 쉬움)
+    - 비동기 처리 (성능 향상)
+    
+    단점:
+    - 복잡도 증가
+    - 디버깅 어려움
+    - 데이터 일관성 문제 (Eventual Consistency)
+
+
+
 
 - ❓Model Config
 - ❓Model Inheritance
+
+- ❓**Clean Architecture**: 비즈니스 로직을 외부 의존성으로부터 독립시키는 아키텍처
+- ❓Service Layer Pattern
+- ❓Repository 패턴 (데이터 접근 추상화): 데이터 접근 로직을 추상화하여 컬렉션처럼 다룸
 
 
 
@@ -348,14 +402,178 @@ routing_table = {
 - **DCL 데이터 제어어**: 사용자에게 권한 부여/취소
 - `JOIN`/`VIEW`/`UNION`
 
-- ❓SQLite
-- ❓ORM이란? (Object-Relational Mapping)
-- ❓SQLAlchemy 기초
-- ❓관계(Relationship) 이해 (1:N, N:M)
+
+- **Transaction 트랜잭션: "하나의 논리적 작업 단위"로 묶인 여러 데이터베이스 작업들**
+    - 하나라도 누락되면 전체가 실패하는 것과 마찬가지인 작업 뭉탱이가 있음. (예: 돈 보내기 - 돈받기)
+    - 이러한 작업들을 하나의 트랜잭션으로 묶음
+    - 둘 다 성공 → commit (확정)
+    - 하나라도 실패 → rollback (전체 취소)
+
+- **ACID 속성: Transaction 트랜잭션의 4가지 보장 사항**
+- **Atomicity (원자성)**: 전부 성공 or 전부 실패
+- **Consistency (일관성)**: 데이터 무결성 유지
+- **Isolation (격리성)**: 동시 실행 트랜잭션은 서로 영향 없음
+- **Durability (지속성)**: commit 후엔 영구 저장
+
+
+- **Unit of Work 패턴**: 여러 Model/Repository 작업(데이터베이스 작업)을 하나의 트랜잭션으로 묶음
+
+
+- **Session 세션: 애플리케이션과 데이터베이스 사이의 통신 관리 중개자 / 대화 창구**  
+    웹 세션(vs. 쿠키)이랑 다른 개념임!! 오해 금지.
+
+    **애플리케이션 - 세션(중개자) - 데이터베이스**
+    * 애플리케이션은 DB에 직접 접근 불가
+    * 세션(중개자)이 애플리케이션 요청 처리 - DB 접근 및 조작
+    * 상태 (트랜잭션의 변경사항) 추적
+    * 격리성: 세션은 하나의 요청만 처리
+
+    0. **저장 내용:**
+        - 실행 중인 SQL 쿼리
+        - 트랜잭션 상태 (commit 전 변경사항)
+        - DB 연결 정보
+    1. **쿼리 빌더 제공:** `db.query()`
+    1. **트랜잭션 관리:**
+        - 변경사항을 메모리에 기록 (`db.add()`) : 대기열(pending)에 추가
+        - 실제로 DB에 저장 (`db.commit()`) :
+            1. 대기열의 모든 변경사항을 SQL로 변환
+            2. SQL을 데이터베이스로 전송
+        - 오류 시 취소 (롤백) (`db.rollback()`)
+    2. **쿼리 실행:** 데이터베이스 조작
+    3. **객체 추적:**
+        - ORM 객체의 변경을 자동 감지
+        - `commit()` 시 자동으로 UPDATE 쿼리 생성
+    4. **DB 연결 관리:** `db.close()`
+    
+    - 각 HTTP 요청마다 새 세션 생성
+    - 요청 완료 후 자동 종료 (메모리 누수 방지)
+    - 백그라운드 작업은 독립적인 세션 필요
+
+
+| 항목     | 데이터베이스 세션        | 웹 세션 (쿠키/세션)               |
+|---------|----------------------|-------------------------------|
+| 목적     | DB와의 통신 관리        | 사용자 상태 유지                  |
+| 수명     | HTTP 요청 동안만 (짧음) | 로그인 유지 기간 (길음)            |
+| 저장 위치 | 서버 메모리            | 서버 메모리 + 쿠키(클라이언트)       |
+| 저장 내용 | SQL 쿼리, 트랜잭션 상태  | 사용자 ID, 장바구니, 설정 등        |
+| 관계     | 1 요청 = 1 세션        | 1 사용자 = 1 세션 (여러 요청에 걸쳐) |
+
+
+- **ORM:Object-Relational Mapping: 객체와 데이터베이스 테이블을 자동으로 연결해주는 기술**  
+    **Python 코드에서 SQL 쿼리를 쓰는 방법:**
+
+    | 방식 | Non-ORM 방식 | ORM 방식 |
+    | 방법 | SQL 직접 작성 | `데이터베이스.query(ORM 클래스 타입).쿼리내용` |
+    | 행(row) | 딕셔너리/튜플로 반환 | Python 클래스의 인스턴스(객체)처럼 활용 |
+    | column | column name이 명확하지 않아서 혼란 | 속성명=column name (명확함) |
+    | 타입안정성 | 없음 - 타입체크 불가 | 있음 - 잘못된 속성 접근 시 즉시 에러 발생 |
+    | 오타 방지 | 불가 - 실행 전까지는 오류 x | 가능 - 잘못된 속성 접근 시 즉시 에러 발생 |
+    | IDE 자동 완성 | 없음 | 있음 (클래스의 속성명) |
+
+    **사용방식:**
+    1. ORM 모델 정의: columns, relationship 정의
+    2. ORM 모델이 자동 처리:
+        - 데이터 접근
+        - JSON 쿼리 자동 실행
+        - 다대다 관계 자동 조회
+        - 데이터 수 자동 계산
+        - ...등등
+    3. HTTP 요청 하나당 세션 1개 생성
+    
+    **장점:**
+    1. 생산성: SQL 작성 시간 단축
+    2. 타입 안전성: IDE 지원으로 오류 사전 방지
+    3. 유지보수성: Python 코드로 DB 구조 관리
+    4. 데이터베이스 독립성: SQLite → PostgreSQL 전환 시 코드 변경 최소화
+    5. 관계 처리: JOIN 쿼리 자동 생성
+    
+    **단점:**
+    1. 학습 곡선: 새로운 API 학습 필요
+    2. 성능: 복잡한 쿼리는 직접 SQL이 더 빠를 수 있음
+    3. 추상화: 내부 동작을 모르면 디버깅 어려움
+
+
+- **관계(Relationship): 테이블 간의 연결 규칙**
+    ```py
+    liked_by_users = relationship(
+        "User",                  # 연결할 클래스 (모델)
+        secondary=post_likes,    # 중간 테이블
+        back_populates="liked_posts"
+    )
+
+    class User(Base):
+        # ...
+        liked_posts = relationship(
+            "Post",
+            secondary=post_likes,
+            back_populates="liked_by_users"
+        )
+    ```
+
+    - **1:N** 하나의 A가 여러 개의 B를 가질 수 있음
+        - 한 명의 사용자는 여러 개의 게시글을 작성할 수 있음
+        - 하나의 게시글은 한 명의 사용자만 작성할 수 있음
+
+    - **N:M** 여러 A가 여러 B를 가질 수 있음
+        - 한 명의 사용자는 여러 게시글에 좋아요를 누를 수 있음
+        - 하나의 게시글은 여러 사용자로부터 좋아요를 받을 수 있음
+
+    - `back_populates=` : 양방향 관계 설정
+    - `secondary=` : 중간 테이블 지정 (N:M만 사용)
+    - `cascade="all, delete-orphan"` : 부모 삭제 시 자식도 삭제
 
 
 
+- **데이터베이스 엔진 (Database Engine): 데이터를 저장하고 조회하는 핵심 소프트웨어**
+    - SQL 쿼리 해석 및 실행
+    - 데이터를 디스크에 읽기/쓰기
+    - 트랜잭션 관리 (ACID 보장)
+    - 인덱스 관리
+    - 동시성 제어 (여러 사용자 동시 접근)
 
+    * SQLite (파일 기반)
+    * PostgreSQL (서버 기반)
+    * MySQL (서버 기반)
+    * MongoDB (NoSQL)
+
+        
+    - **SQLite: 파일 기반의 경량 관계형 임베디드 데이터베이스 엔진**
+        - **임베디드 데이터베이스**: 애플리케이션에 직접 내장되어 서버 없이 동작 가능한 데이터베이스
+        - 라이브러리처럼 애플리케이스에 포함
+        - 설치/설정 불필요 (serverless)
+        - 작은 용량, 빠른 속도
+        - 개발/테스트 환경에 적합
+        - 동시 쓰기 제한 (읽기는 동시 가능)
+        ```
+        일반 DB (PostgreSQL, MySQL):
+        App → Network → DB Server → Disk
+
+        임베디드 DB (SQLite):
+        App → SQLite Library → Disk (직접 접근)
+        ```
+
+- **ORM (Object-Relational Mapping) 라이브러리**
+
+    - **SQLAlchemy: ORM 라이브러리**
+        - Python 객체 ↔ 데이터베이스 테이블을 매핑
+        - Python 클래스로 테이블 정의
+        - 다양한 데이터베이스(SQLite, PostgreSQL, MySQL 등)를 지원하는 추상화 계층
+        - 데이터베이스 독립적 (DB 변경 시 코드 수정 최소화)
+        - SQL을 Python 코드로 작성 가능 (Python 메서드로 작성)
+        - 타입 체킹, 자동완성 지원
+    
+    - **SQLModel: ORM 라이브러리**
+    - Pydantic + SQLAlchemy 통합 (내부적으로 SQLAlchemy 사용)
+    - 타입 힌트 기반 (더 간결)
+    - FastAPI와 완벽 호환
+    - 데이터 검증 자동화
+
+
+- 비유:
+    - SQLite = 엑셀 파일 (데이터 저장소)
+    - SQLAlchemy = 엑셀을 다루는 Python 라이브러리 (openpyxl 같은)
+
+- 
 
 
 
@@ -549,7 +767,7 @@ FastAPI 파싱:
     - 데이터 계약서: "이 데이터는 이런 형태여야 한다"는 계약서 / 템플릿.
     - 자동 검증기 & 변환기:
     1) 타입 검증 (Type Validation): 
-    2) 타입 변환 (Type Coercion): ✨일반 타입 검사기와 다른 점! 가능하면 자동 변환 - ex) 숫자 문자열을 정수로 변환
+    2) 타입 변환 (Type Coercion): ✨일반 타입 검사기와 다른 점! 가능하면 자동 변환 - ex. 숫자 문자열을 정수로 변환
     3) 데이터 검증 (Data Validation): 타입 외의 추가 검증 - 형식, 길이, 범위 등 체크
         ```py
         class User(BaseModel):
@@ -594,15 +812,18 @@ FastAPI 파싱:
     - 컴퓨터 프로세스들 사이에서, 서로를 인식한 후 데이터 송수신을 마칠 때까지의 기간.
     - 사용자별 고유 식별자(세션ID)를 생성해 사용자의 정보를 저장하고, 브라우저는 이 세션ID를 사용해서 서버와 통신.
     - 세션과 관련된 정보를, 쿠키를 이용해 유저의 컴퓨터에 작은 파일로 저장을 해두고, 쿠키에 있는 세션 정보를 가지고 서버에 접근하는 방식.
+    - 저장 정보 예시: 로그인한 사용자 ID, 장바구니 내용, 임시 저장 데이터, 결제 진행 상태
+
 
 - **Cookie 쿠키**:
     - 서버에서 사용자의 컴퓨터(브라우저)에 설치되는 작은 기록 정보 (텍스트) 파일.
     - 웹사이트의 방문 정보를 기억해서 개인화 서비스를 제공하려는 목적으로 사용됨.
-    - 서버에 저장할 필요는 없지만, 유저들이 저장하고 싶은 정보들(오늘 하루 보지 않기, 아이디 저장, 쇼핑몰 장바구니 기능 등)을 저장하는 기능
+    - 서버에 저장할 필요는 없지만, 유저들이 저장하고 싶은 정보들(오늘 하루 보지 않기, 아이디 저장 등)을 저장하는 기능
+    - 저장 정보 예시: 세션 아이디, 언어 설정 (작고 중요하지 않음), 테마 설정 (다크모드 등), 광고 동의 여부
+
 - **Web storage 웹스토리지**: 브라우저 안의 개인 금고. 쿠키보다 더 많은 데이터를 브라우저에 저장할 수 있다.
     - **Local Storage 로컬 스토리지**: 영구 보관함. 직접 지우지 않으면 계속 남아 있음. (예: 사용자 설정, 테마(다크모드))
-    - **Session Storage 세션 스토리지**: 임시 보관함. 브라우저 탭을 닫으면 사라짐. (예: 임시 작성 중인 글, 일회용 데이터)
-    - ❓5단 분석법으로 정리해보기
+    - **Session Storage 세션 스토리지**: 임시 보관함. 브라우저 탭을 닫으면 사라짐. (예: 임시 작성 중인 글, 일회용 데이터x
 - ❓**CSRF 공격**: `same_size=”lax”`로 방지
 
 ---
@@ -752,11 +973,13 @@ FastAPI 파싱:
 
 
 ## Model Serving
-- ❓OpenRouter
+- temperature: AI 응답의 창의성/무작위성 정도 (0:결정적 ~ 1:창의적)
+- max_tokens: AI가 생성할 최대 토큰(단어) 수
+- top_p: 다음 단어 선택 범위 조절 (nucleus sampling)
+
+- ❓외부 API 호출 / OpenRouter
 - ❓비동기 프로그래밍 (async/await)
 - ❓BackgroundTasks (백그라운드 작업)
-- ❓외부 API 호출 (OpenRouter)
-- ❓환경변수 관리 (.env 파일)
-- ❓dot.env
+- ❓환경변수 관리 (.env 파일 / dot.env)
 
 - ❓WebSocket
