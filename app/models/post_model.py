@@ -1,9 +1,7 @@
 """
 Post Model (Database Repository)
-Post Model (Database Repository)
 
 역할:
-1. 데이터 접근 계층: 게시글 데이터베이스와의 상호작용
 1. 데이터 접근 계층: 게시글 데이터베이스와의 상호작용
 2. CRUD 연산: 게시글 생성, 조회, 수정, 삭제
 3. 관계 데이터 관리: 좋아요, 조회수, 댓글 수 추적
@@ -17,10 +15,6 @@ Post Model (Database Repository)
 - In-memory List[Dict] → SQLAlchemy ORM (SQLite)
 - 좋아요: dict 추적 → post_likes 테이블 (다대다 관계)
 - 의존성 주입: SQLAlchemy Session 주입
-
-변경사항:
-- In-memory List[Dict] → SQLAlchemy ORM (SQLite)
-- 좋아요: dict 추적 → post_likes 테이블 (다대다 관계)
 """
 
 from typing import Optional, cast
@@ -35,13 +29,11 @@ class PostModel:
 
     Attributes:
     - db (Session): SQLAlchemy 세션
-    - db (Session): SQLAlchemy 세션
 
     Methods:
     - create: 게시글 생성
     - find_by_id: ID로 게시글 조회
     - find_all: 전체 게시글 조회
-    - find_by_author: 작성자별 게시글 조회
     - find_by_author: 작성자별 게시글 조회
     - update: 게시글 수정
     - delete: 게시글 삭제
@@ -76,10 +68,8 @@ class PostModel:
 
         Returns:
         - Post: 생성된 게시글 ORM 객체
-        - Post: 생성된 게시글 ORM 객체
 
         Note:
-        - author_nickname, author_profile_image는 relationship을 통해 자동 조회
         - author_nickname, author_profile_image는 relationship을 통해 자동 조회
         """
         new_post = Post(

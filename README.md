@@ -3,10 +3,6 @@
 > FastAPI를 활용한 커뮤니티 백엔드 API 개발 학습 프로젝트  
 > FE Repository: [ktb3-yanni-community-fe](https://github.com/yanwoo8/ktb3-yanni-community-fe)
 
-> FastAPI를 활용한 커뮤니티 백엔드 API 개발 학습 프로젝트  
-> FE Repository: [ktb3-yanni-community-fe](https://github.com/yanwoo8/ktb3-yanni-community-fe)
-
-
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.2-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
@@ -14,8 +10,6 @@
 [![CURL](https://img.shields.io/badge/Testing-CURL-green.svg?style=flat&logo=curl&logoColor=white)](https://curl.se/docs/manpage.html)
 
 [![KakaoTech](https://img.shields.io/badge/kakaotech_bootcamp-ffcd00.svg?logo=kakaotalk&logoColor=000000)](https://kakaotechbootcamp.com/)
-[![StartupCode](https://img.shields.io/badge/StartupCode-blue.svg)](https://www.startupcode.kr/)
-
 
 
 
